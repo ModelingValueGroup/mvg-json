@@ -22,7 +22,6 @@ set -ue
 ##########################################################################
 
 . ~/secrets.sh # for $GITHUB_TOKEN
-export ALLREP_TOKEN="$GITHUB_TOKEN"
 
 echo "## clearing out lib folder..."
 rm -f lib/*.jar lib/*.pom

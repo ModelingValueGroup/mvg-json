@@ -15,9 +15,12 @@
 
 package org.modelingvalue.json;
 
+import java.lang.reflect.*;
 import java.util.*;
 import java.util.Map.*;
+import java.util.function.*;
 
+@SuppressWarnings("unused")
 public class ToJson {
     private static final String NULL_STRING = "null";
 
@@ -62,6 +65,77 @@ public class ToJson {
     protected Iterator<Object> getArrayIterator(Object o) {
         //noinspection unchecked
         return ((Iterable<Object>) o).iterator();
+    }
+
+    protected Map<String, Object> getIntrospectionMap(Object o) {
+        Map<String, Object> map = new HashMap<>();
+        if (includeClassNameInIntrospection()) {
+            map.put("~className", o.getClass().getName());
+        }
+        getFields(o).stream()
+                .filter(getIntrospectionFieldFilter())
+                .forEach(f -> putInIntrospectionMap(f, map, o));
+        getMethods(o).stream()
+                .filter(getIntrospectionMethodFilter())
+                .forEach(m -> putInIntrospectionMap(m, map, o));
+        return map;
+    }
+
+    protected boolean includeClassNameInIntrospection() {
+        return false;
+    }
+
+    protected Predicate<Field> getIntrospectionFieldFilter() {
+        return f -> !f.isSynthetic()
+                && !f.isEnumConstant()
+                && !Modifier.isStatic(f.getModifiers())
+                && !Modifier.isVolatile(f.getModifiers())
+                && !Modifier.isTransient(f.getModifiers());
+    }
+
+    protected Predicate<Method> getIntrospectionMethodFilter() {
+        return f -> !f.isSynthetic()
+                && f.getParameterCount() == 0
+                && f.getReturnType() != Void.class
+                && !Modifier.isStatic(f.getModifiers())
+                && !Modifier.isVolatile(f.getModifiers())
+                && !Modifier.isTransient(f.getModifiers())
+                && f.getName().matches("^(get|is)[A-Z].*");
+    }
+
+    private void putInIntrospectionMap(Field f, Map<String, Object> map, Object o) {
+        try {
+            f.setAccessible(true);
+            map.put(f.getName(), f.get(o));
+        } catch (IllegalAccessException e) {
+            // ignore, just leave out this element
+        }
+    }
+
+    private void putInIntrospectionMap(Method f, Map<String, Object> map, Object o) {
+        try {
+            f.setAccessible(true);
+            map.put(f.getName(), f.invoke(o));
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            // ignore, just leave out this element
+        }
+    }
+
+    private <T> List<Field> getFields(T t) {
+        List<Field> l = new ArrayList<>();
+        for (Class<?> clazz = t.getClass(); clazz != Object.class; clazz = clazz.getSuperclass()) {
+            l.addAll(Arrays.asList(clazz.getDeclaredFields()));
+        }
+        Collections.reverse(l);
+        return l;
+    }
+
+    private <T> List<Method> getMethods(T t) {
+        List<Method> l = new ArrayList<>();
+        for (Class<?> clazz = t.getClass(); clazz != Object.class; clazz = clazz.getSuperclass()) {
+            l.addAll(Arrays.asList(clazz.getDeclaredMethods()));
+        }
+        return l;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -115,12 +189,8 @@ public class ToJson {
         } else if (o instanceof Object[]) {
             jsonFromObjectArray((Object[]) o);
         } else {
-            jsonFromUnknown(o);
+            jsonFromMap(getIntrospectionMap(o));
         }
-    }
-
-    protected void jsonFromUnknown(Object o) {
-        throw new IllegalArgumentException("can not render object (" + o + ") of class " + o.getClass().getName());
     }
 
     protected void jsonFromMap(Object o) {
