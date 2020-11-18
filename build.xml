@@ -204,7 +204,6 @@
     <property name="artifact.temp.output.mvgjson:jar" value="${artifacts.temp.dir}/mvgJson_jar"/>
     <mkdir dir="${artifact.temp.output.mvgjson:jar}"/>
     <jar destfile="${temp.jar.path.helloworld.jar}" duplicate="preserve" filesetmanifest="mergewithoutmain">
-      <zipfileset file="${basedir}/helloworld/src/META-INF/MANIFEST.MF" prefix="META-INF"/>
       <zipfileset dir="${mvgjson.output.dir}"/>
     </jar>
     <copy file="${temp.jar.path.helloworld.jar}" tofile="${artifact.temp.output.mvgjson:jar}/helloworld.jar"/>
