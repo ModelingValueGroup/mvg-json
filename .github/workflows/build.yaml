@@ -69,26 +69,26 @@ jobs:
       - name: "publish action-artifact jar"
         uses: actions/upload-artifact@v1
         with:
-          name: helloworld.jar
-          path: out/artifacts/helloworld.jar
+          name: mvgJson.jar
+          path: out/artifacts/mvgJson.jar
 
       - name: "publish action-artifact sources"
         uses: actions/upload-artifact@v1
         with:
-          name: helloworld-sources.jar
-          path: out/artifacts/helloworld-sources.jar
+          name: mvgJson-sources.jar
+          path: out/artifacts/mvgJson-sources.jar
 
       - name: "publish action-artifact javadoc"
         uses: actions/upload-artifact@v1
         with:
-          name: helloworld-javadoc.jar
-          path: out/artifacts/helloworld-javadoc.jar
+          name: mvgJson-javadoc.jar
+          path: out/artifacts/mvgJson-javadoc.jar
 
       - name: "publish action-artifact test-results"
         uses: actions/upload-artifact@v1
         with:
-          name: helloworld-testresults.jar
-          path: out/artifacts/helloworld-testresults.jar
+          name: mvgJson-testresults.jar
+          path: out/artifacts/mvgJson-testresults.jar
 
       - name: "if NOT master: saving snapshots for other projects on this branch"
         if: github.ref != 'refs/heads/master'
@@ -106,4 +106,4 @@ jobs:
         uses: ModelingValueGroup/upload-maven-package-action@master
         if  : github.ref == 'refs/heads/master'
         with:
-          file : "out/artifacts/helloworld.jar"
+          file : "out/artifacts/mvgJson.jar"
