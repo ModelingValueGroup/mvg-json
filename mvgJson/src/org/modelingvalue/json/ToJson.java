@@ -90,7 +90,8 @@ public class ToJson {
                 && !f.isEnumConstant()
                 && !Modifier.isStatic(f.getModifiers())
                 && !Modifier.isVolatile(f.getModifiers())
-                && !Modifier.isTransient(f.getModifiers());
+                && !Modifier.isTransient(f.getModifiers())
+                && (Modifier.isPublic(f.getModifiers()) || !f.getDeclaringClass().getPackage().getName().startsWith("java."));
     }
 
     protected Predicate<Method> getIntrospectionMethodFilter() {
@@ -100,7 +101,8 @@ public class ToJson {
                 && !Modifier.isStatic(f.getModifiers())
                 && !Modifier.isVolatile(f.getModifiers())
                 && !Modifier.isTransient(f.getModifiers())
-                && f.getName().matches("^(get|is)[A-Z].*");
+                && f.getName().matches("^(get|is)[A-Z].*")
+                && (Modifier.isPublic(f.getModifiers()) || !f.getDeclaringClass().getPackage().getName().startsWith("java."));
     }
 
     private void putInIntrospectionMap(Field f, Map<String, Object> map, Object o) {
@@ -115,7 +117,8 @@ public class ToJson {
     private void putInIntrospectionMap(Method f, Map<String, Object> map, Object o) {
         try {
             f.setAccessible(true);
-            map.put(f.getName(), f.invoke(o));
+            String name = f.getName().replaceAll("^(get|is)([A-Z]).*", "$2").toLowerCase() + f.getName().replaceAll("^(get|is)[A-Z]", "");
+            map.put(name, f.invoke(o));
         } catch (IllegalAccessException | InvocationTargetException e) {
             // ignore, just leave out this element
         }

@@ -19,8 +19,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.modelingvalue.json.Json.*;
 
 import java.io.*;
-import java.util.*;
 import java.util.AbstractMap.*;
+import java.util.*;
 import java.util.Map.*;
 
 import org.junit.jupiter.api.*;
@@ -28,8 +28,7 @@ import org.junit.jupiter.api.*;
 public class JsonTests {
     @RepeatedTest(1)
     public void primitivesToJson() {
-        assertThrows(IllegalArgumentException.class, () -> toJson(new Object()));
-
+        assertEquals("{}", toJson(new Object()));
         assertEquals("null", toJson(null));
         assertEquals("0", toJson((byte) 0));
         assertEquals("42", toJson((byte) 42));
@@ -74,18 +73,26 @@ public class JsonTests {
 
     @RepeatedTest(1)
     public void mapsToJson() {
-        assertEquals("{}", toJson(Map.of()));
-        assertEquals("{\"a\":1,\"b\":2}", toJson(Map.of("a", 1, "b", 2)));
-        assertEquals("{\"a\":\"a\"}", toJson(makeMap(new SimpleEntry<>("a", "a"))));
-        assertEquals("{\"a\":null,\"b\":null,\"c\":null}", toJson(makeMap(new SimpleEntry<>("a", null), new SimpleEntry<>("b", null), new SimpleEntry<>("c", null))));
+        assertEquals("{}",
+                toJson(Map.of()));
+        assertEquals("{\"a\":1,\"b\":2}",
+                toJson(Map.of("a", 1, "b", 2)));
+        assertEquals("{\"a\":\"a\"}",
+                toJson(makeMap(new SimpleEntry<>("a", "a"))));
+        assertEquals("{\"a\":null,\"b\":null,\"c\":null}",
+                toJson(makeMap(new SimpleEntry<>("a", null), new SimpleEntry<>("b", null), new SimpleEntry<>("c", null))));
         assertThrows(NullPointerException.class, () -> toJson(makeMap(new SimpleEntry<>(null, "a"), new SimpleEntry<>("b", "b"), new SimpleEntry<>("c", "c"))));
         assertThrows(NullPointerException.class, () -> toJson(makeMap(new SimpleEntry<>(null, null), new SimpleEntry<>("null", null))));
         assertThrows(NullPointerException.class, () -> toJson(makeMap(new SimpleEntry<>(null, null))));
         assertThrows(NullPointerException.class, () -> toJson(makeMap(new SimpleEntry<>(null, "a"))));
-        assertEquals("{\"1\":1,\"b\":2}", toJson(Map.of(1, 1, "b", 2)));
-        assertEquals("{\"EUR\":1.3,\"SVC\":13.67}", toJson(Map.of(Currency.getInstance("EUR"), 1.3, Currency.getInstance("SVC"), 13.67)));
-        assertThrows(IllegalArgumentException.class, () -> toJson(Map.of(Currency.getInstance("EUR"), 21, Currency.getInstance("SVC"), new Object())));
-        assertThrows(IllegalArgumentException.class, () -> toJson(Map.of(Currency.getInstance("EUR"), Currency.getInstance("EUR"), Currency.getInstance("SVC"), new Object())));
+        assertEquals("{\"1\":1,\"b\":2}",
+                toJson(Map.of(1, 1, "b", 2)));
+        assertEquals("{\"EUR\":1.3,\"SVC\":13.67}",
+                toJson(Map.of(Currency.getInstance("EUR"), 1.3, Currency.getInstance("SVC"), 13.67)));
+        assertEquals("{\"EUR\":21,\"SVC\":{}}",
+                toJson(Map.of(Currency.getInstance("EUR"), 21, Currency.getInstance("SVC"), new Object())));
+        assertEquals("{\"EUR\":{\"currencyCode\":\"EUR\",\"defaultFractionDigits\":2,\"displayName\":\"Euro\",\"numericCode\":978,\"numericCodeAsString\":\"978\",\"symbol\":\"\\u20AC\"},\"SVC\":{}}",
+                toJson(Map.of(Currency.getInstance("EUR"), Currency.getInstance("EUR"), Currency.getInstance("SVC"), new Object())));
     }
 
     @RepeatedTest(1)

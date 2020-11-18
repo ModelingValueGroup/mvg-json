@@ -77,7 +77,7 @@ public class JsonIntrospectionTests {
                         //15
                         //16
                         "\"aap99\":99," +
-                        "\"getName\":\"xyzzy\"," +
+                        "\"name\":\"xyzzy\"," +
                         "\"probea\":{" +
                         /**/"\"aap01\":1," +
                         /**/"\"aap02\":2," +
