@@ -200,7 +200,7 @@
   <target name="test" depends="">
     <echo>all done for test</echo>
   </target>
-  <target name="javadoc" depends="javadoc.module.mvgjson">
+  <target name="javadoc" depends="">
     <echo>all done for javadoc</echo>
   </target>
 </project>
