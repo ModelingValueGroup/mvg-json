@@ -429,9 +429,10 @@ public class ToJson {
         case '"':
             b.append("\\\"");
             break;
-        case '/':
-            b.append("\\/");
-            break;
+        // JSON allows escaping '/' but it does not require it to be escaped:
+        //        case '/':
+        //            b.append("\\/");
+        //            break;
         case '\\':
             b.append("\\\\");
             break;

@@ -23,7 +23,7 @@
 #       s = sources
 #       t = test
 #===================================================================
-version="1.0.3"
+version="1.0.4"
 artifacts=(
   "org.modelingvalue   mvgjson                 $version    jar jds"
 )

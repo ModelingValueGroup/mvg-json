@@ -45,7 +45,7 @@ public class JsonTests {
         assertEquals(quoted("\\\""), toJson('"'));
         assertEquals(quoted("'"), toJson('\''));
         assertEquals("true", toJson(true));
-        assertEquals(quoted("blabla-·-\\u0000\\\"-\\t\\r\\n\\f\\b\\/\\\\-\\u2022"), toJson("blabla-\u00b7-\000\"-\t\r\n\f\b/\\-\u2022"));
+        assertEquals(quoted("blabla-·-\\u0000\\\"-\\t\\r\\n\\f\\b/\\\\-\\u2022"), toJson("blabla-\u00b7-\000\"-\t\r\n\f\b/\\-\u2022"));
     }
 
     @RepeatedTest(1)
