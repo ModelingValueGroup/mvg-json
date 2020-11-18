@@ -23,9 +23,9 @@
 #       s = sources
 #       t = test
 #===================================================================
-version="1.0.1"
+version="1.0.2"
 artifacts=(
-  "org.modelingvalue   mvgJson                 $version    jar jds"
+  "org.modelingvalue   mvgjson                 $version    jar jds"
 )
 dependencies=(
   "org.junit.jupiter   junit-jupiter-api       5.6.2       jar jdst"
