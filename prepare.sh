@@ -21,7 +21,11 @@ set -ue
 # the lib folder will be filled from the project.sh file
 ##########################################################################
 
-. ~/secrets.sh # for $INPUT_TOKEN
+. ~/secrets.sh # for $GITHUB_TOKEN
+export ALLREP_TOKEN="$GITHUB_TOKEN"
+
+echo "## clearing out lib folder..."
+rm -f lib/*.jar lib/*.pom
 
 echo "## downloading buildtools..."
 curl \
@@ -34,9 +38,6 @@ curl \
         "https://github.com/ModelingValueGroup/buildtools/releases/latest/download/buildtools.jar"
 mv buildtools.jar ~/buildtools.jar
 
-echo "## clearing out lib folder..."
-rm -f lib/*.jar lib/*.pom
-
 echo "## generate pom from project.sh..."
 . <(java -jar ~/buildtools.jar)
 generateAll
@@ -47,9 +48,10 @@ echo "## get dependencies from maven..."
     mvn dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=javadoc || :
     mvn dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=sources || :
 ) > /tmp/prepare.log
-(   getAllDependencies "$INPUT_TOKEN" 2>&1 \
-        | fgrep -v 'could not download artifact: org.modelingvalue:' \
-        | fgrep -v 'missing dependency org.modelingvalue:'
+(   getAllDependencies "$GITHUB_TOKEN" 2>&1 \
+        | fgrep -v --line-buffered 'could not download artifact: org.modelingvalue:' \
+        | fgrep -v --line-buffered 'missing dependency org.modelingvalue:' \
+        | fgrep -v --line-buffered '::info::no snapshot for '
 ) || :
 
 echo "## lib folder contents:"

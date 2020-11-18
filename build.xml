@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="mvgJson" default="all">
+<project name="mvgjson" default="all">
   <property file="build.properties"/>
   <!-- Uncomment the following property if no tests compilation is needed -->
   <!-- 
@@ -152,12 +152,12 @@
     <pathelement location="${basedir}/lib/opentest4j.jar"/>
   </path>
   <!-- Modules -->
-  <import file="${basedir}/helloworld/module_helloworld.xml"/>
+  <import file="${basedir}/mvgJson/module_mvgjson.xml"/>
   <target name="init" description="Build initialization">
     <!-- Perform any build initialization in this target -->
   </target>
-  <target name="clean" depends="clean.module.helloworld" description="cleanup all"/>
-  <target name="build.modules" depends="init, clean, compile.module.helloworld" description="build all modules"/>
+  <target name="clean" depends="clean.module.mvgjson" description="cleanup all"/>
+  <target name="build.modules" depends="init, clean, compile.module.mvgjson" description="build all modules"/>
   <target name="init.artifacts">
     <property name="artifacts.temp.dir" value="${basedir}/__artifacts_temp"/>
     <property name="artifact.output.helloworld-sources:jar" value="${basedir}/out/artifacts"/>
@@ -175,7 +175,7 @@
     </jar>
     <copy file="${temp.jar.path.helloworld-sources.jar}" tofile="${artifact.temp.output.helloworld-sources:jar}/helloworld-sources.jar"/>
   </target>
-  <target name="artifact.helloworld:jar" depends="init.artifacts, compile.module.helloworld" description="Build 'helloworld:jar' artifact">
+  <target name="artifact.helloworld:jar" depends="init.artifacts" description="Build 'helloworld:jar' artifact">
     <property name="artifact.temp.output.helloworld:jar" value="${artifacts.temp.dir}/helloworld_jar"/>
     <mkdir dir="${artifact.temp.output.helloworld:jar}"/>
     <jar destfile="${temp.jar.path.helloworld.jar}" duplicate="preserve" filesetmanifest="merge">
@@ -197,10 +197,10 @@
     <delete dir="${artifacts.temp.dir}"/>
   </target>
   <target name="all" depends="build.modules, build.all.artifacts" description="build all"/>
-  <target name="test" depends="testresults.module.helloworld">
+  <target name="test" depends="">
     <echo>all done for test</echo>
   </target>
-  <target name="javadoc" depends="javadoc.module.helloworld">
+  <target name="javadoc" depends="javadoc.module.mvgjson">
     <echo>all done for javadoc</echo>
   </target>
 </project>
