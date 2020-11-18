@@ -1,10 +1,8 @@
-# helloworld
-Skeleton for a helloworld java project.
+# mvgJson
+Our custom json (de)serializer.
 
 ## maven dependencies
-To get all the dependencies in your ```lib``` folder: use the following commands:
+To get all the dependencies in your ```lib``` folder: use the following command:
 ````bash
-mvn dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib
-mvn dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=javadoc
-mvn dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=sources
+./prepare.sh
 ````
