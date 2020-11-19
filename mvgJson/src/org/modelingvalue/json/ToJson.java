@@ -90,19 +90,24 @@ public class ToJson {
                 && !f.isEnumConstant()
                 && !Modifier.isStatic(f.getModifiers())
                 && !Modifier.isVolatile(f.getModifiers())
+                && !Modifier.isNative(f.getModifiers())
                 && !Modifier.isTransient(f.getModifiers())
-                && (Modifier.isPublic(f.getModifiers()) || !f.getDeclaringClass().getPackage().getName().startsWith("java."));
+                && (Modifier.isPublic(f.getModifiers()) || !f.getDeclaringClass().getPackage().getName().startsWith("java."))
+                ;
     }
 
     protected Predicate<Method> getIntrospectionMethodFilter() {
         return f -> !f.isSynthetic()
                 && f.getParameterCount() == 0
                 && f.getReturnType() != Void.class
+                && !f.isDefault()
                 && !Modifier.isStatic(f.getModifiers())
                 && !Modifier.isVolatile(f.getModifiers())
+                && !Modifier.isNative(f.getModifiers())
                 && !Modifier.isTransient(f.getModifiers())
+                && (Modifier.isPublic(f.getModifiers()) || !f.getDeclaringClass().getPackage().getName().startsWith("java."))
                 && f.getName().matches("^(get|is)[A-Z].*")
-                && (Modifier.isPublic(f.getModifiers()) || !f.getDeclaringClass().getPackage().getName().startsWith("java."));
+                ;
     }
 
     private void putInIntrospectionMap(Field f, Map<String, Object> map, Object o) {
