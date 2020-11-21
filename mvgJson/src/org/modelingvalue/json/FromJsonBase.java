@@ -24,8 +24,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     private static final String  NULL_STRING  = "null";
     private static final char    EOF_CHAR     = '\000';
     //
-    private              String  input;
-    private              int     inputLength;
+    private final        String  input;
     //
     private              int     i;
     private              char    current;
@@ -33,9 +32,11 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     private              int     level;
     private              int     index;
 
-    public Object fromJson(String input) {
+    protected FromJsonBase(String input) {
         this.input = Objects.requireNonNull(input);
-        inputLength = input.length();
+    }
+
+    protected Object parse() {
         i = 0;
         level = 0;
         index = 0;
@@ -112,7 +113,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
 
     protected void next(int skip) {
         i += skip;
-        eof = inputLength <= i;
+        eof = input.length() <= i;
         current = eof ? EOF_CHAR : input.charAt(i);
     }
 
@@ -257,7 +258,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
                     break;
                 case 'u':
                     next();
-                    if (inputLength <= i + 4) {
+                    if (input.length() <= i + 4) {
                         throw error();
                     }
                     int hex = Integer.parseInt(input, i, i + 4, 16);

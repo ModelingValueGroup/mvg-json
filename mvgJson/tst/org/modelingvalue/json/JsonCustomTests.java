@@ -25,15 +25,15 @@ import org.junit.jupiter.api.*;
 public class JsonCustomTests {
     @RepeatedTest(1)
     public void counters() {
-        assertEquals("1,0,0,0,0,0,0", new CountingTesterFromJson().fromJson("[]"));
-        assertEquals("3,2,3,3,4,0,0", new CountingTesterFromJson().fromJson("[[],[],{\"a\":{\"b\":\"aa\"},\"c\":21}]"));
+        assertEquals("1,0,0,0,0,0,0", CountingTesterFromJson.fromJson("[]"));
+        assertEquals("3,2,3,3,4,0,0", CountingTesterFromJson.fromJson("[[],[],{\"a\":{\"b\":\"aa\"},\"c\":21}]"));
 
         String testData = readData("test.json");
         assertEquals(592 + 22, testData.replaceAll("[^\\[]", "").length());
         assertEquals(519 + 29, testData.replaceAll("[^{]", "").length());
         assertEquals(592 + 22, Json.toJson(Json.fromJson(testData)).replaceAll("[^\\[]", "").length());
         assertEquals(519 + 29, Json.toJson(Json.fromJson(testData)).replaceAll("[^{]", "").length());
-        assertEquals("592,519,1588,1331,1735,22,29", new CountingTesterFromJson().fromJson(testData));
+        assertEquals("592,519,1588,1331,1735,22,29", CountingTesterFromJson.fromJson(testData));
     }
 
     public String readData(String name) {
@@ -53,6 +53,14 @@ public class JsonCustomTests {
         private int numStrings;
         private int numBracketsString;
         private int numCurliesString;
+
+        public static Object fromJson(String s) {
+            return new CountingTesterFromJson(s).parse();
+        }
+
+        protected CountingTesterFromJson(String input) {
+            super(input);
+        }
 
         @Override
         protected Void makeMap() {

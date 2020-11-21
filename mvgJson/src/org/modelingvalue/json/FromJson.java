@@ -18,6 +18,14 @@ package org.modelingvalue.json;
 import java.util.*;
 
 public class FromJson extends FromJsonBase<Iterable<Object>, Map<String, Object>> {
+    public static Object fromJson(String s) {
+        return new FromJson(s).parse();
+    }
+
+    protected FromJson(String input) {
+        super(input);
+    }
+
     @Override
     protected HashMap<String, Object> makeMap() {
         return new HashMap<>();

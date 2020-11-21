@@ -22,13 +22,18 @@ import java.util.function.*;
 
 @SuppressWarnings("unused")
 public class ToJson {
-    private static final String NULL_STRING = "null";
+    private static final String        NULL_STRING = "null";
+    //
+    private final        Object        root;
+    private final        StringBuilder b           = new StringBuilder();
+    private              int           level;
+    private              int           index;
 
-    private final StringBuilder b = new StringBuilder();
-    private       int           level;
-    private       int           index;
+    protected ToJson(Object root) {
+        this.root = root;
+    }
 
-    public String toJson(Object root) {
+    public String render() {
         b.setLength(0);
         level = 0;
         index = 0;

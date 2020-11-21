@@ -17,11 +17,11 @@ package org.modelingvalue.json;
 
 public class Json {
     public static String toJson(Object o) {
-        return new ToJson().toJson(o);
+        return new ToJson(o).render();
     }
 
     public static Object fromJson(String s) {
-        return new FromJson().fromJson(s);
+        return FromJson.fromJson(s);
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
