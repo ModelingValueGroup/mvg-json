@@ -30,10 +30,6 @@ jobs:
         if: github.ref == 'refs/heads/master'
         run: |
           . <(java -jar ~/buildtools.jar)
-          set -x
-          git fetch --tags
-          git tag
-          git tag | fgrep -Fx "v1.0.0"
           findUntaggedVersionNumber
 
       - name: "prepare ant"
