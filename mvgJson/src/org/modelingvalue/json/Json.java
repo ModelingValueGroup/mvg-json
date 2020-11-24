@@ -17,7 +17,7 @@ package org.modelingvalue.json;
 
 public class Json {
     public static String toJson(Object o) {
-        return new ToJson(o).render();
+        return ToJson.toJson(o);
     }
 
     public static Object fromJson(String s) {

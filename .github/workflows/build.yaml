@@ -26,6 +26,12 @@ jobs:
       - name: "get buildtools"
         uses: ModelingValueGroup/buildtools@master
 
+      - name: "if master: find a tag-free version number"
+        if: github.ref == 'refs/heads/master'
+        run: |
+          . <(java -jar ~/buildtools.jar)
+          findUntaggedVersionNumber
+
       - name: "prepare ant"
         run:  |
           cat <<EOF >build.properties
