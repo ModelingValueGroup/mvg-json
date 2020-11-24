@@ -58,6 +58,7 @@ public class ToJson {
         return o instanceof Map;
     }
 
+    @SuppressWarnings("unchecked")
     protected Iterator<Entry<Object, Object>> getMapIterator(Object o) {
         //noinspection unchecked
         return ((Map<Object, Object>) o).entrySet().stream().sorted(Comparator.comparing(e -> e.getKey().toString())).iterator();
@@ -67,6 +68,7 @@ public class ToJson {
         return o instanceof Iterable;
     }
 
+    @SuppressWarnings("unchecked")
     protected Iterator<Object> getArrayIterator(Object o) {
         //noinspection unchecked
         return ((Iterable<Object>) o).iterator();
