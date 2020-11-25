@@ -15,15 +15,24 @@
 
 package org.modelingvalue.json;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.modelingvalue.json.Json.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.modelingvalue.json.Json.fromJson;
+import static org.modelingvalue.json.Json.toJson;
 
-import java.io.*;
-import java.util.AbstractMap.*;
-import java.util.*;
-import java.util.Map.*;
+import java.io.Serializable;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Currency;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 
 public class JsonTests {
     @RepeatedTest(1)
@@ -97,16 +106,24 @@ public class JsonTests {
 
     @RepeatedTest(1)
     public void prettyJson() {
+        assertEquals("[\n]", JsonPrettyfier.pretty(toJson(List.of())));
+        assertEquals("[\n  [\n  ]\n]", JsonPrettyfier.pretty(toJson(List.of(List.of()))));
+        assertEquals("[\n  [\n  ],\n  [\n  ]\n]", JsonPrettyfier.pretty(toJson(List.of(List.of(), List.of()))));
+
+        assertEquals("{\n}", JsonPrettyfier.pretty(toJson(Map.of())));
+        assertEquals("{\n  \"a\": [\n  ]\n}", JsonPrettyfier.pretty(toJson(Map.of("a", List.of()))));
+        assertEquals("{\n  \"a\": {\n  },\n  \"b\": [\n  ]\n}", JsonPrettyfier.pretty(toJson(Map.of("a", Map.of(), "b", List.of()))));
+
         assertEquals("{\n  \"EUR\": 1.3,\n  \"SVC\": 13.67\n}",
-                Json.pretty(toJson(Map.of(Currency.getInstance("EUR"), 1.3, Currency.getInstance("SVC"), 13.67))));
+                JsonPrettyfier.pretty(toJson(Map.of(Currency.getInstance("EUR"), 1.3, Currency.getInstance("SVC"), 13.67))));
         assertEquals("[\n  1,\n  2,\n  3,\n  [\n    1,\n    2,\n    3,\n    [\n      1,\n      2,\n      3\n    ]\n  ]\n]",
-                Json.pretty(toJson(getTestObject1())));
+                JsonPrettyfier.pretty(toJson(getTestObject1())));
         assertEquals(
                 "[^#1,^#2,^#3,^#[^##1,^##2,^##3,^##[^###1,^###2,^###3^##]^#]^]",
-                Json.pretty(toJson(getTestObject1()), "#", "^"));
+                JsonPrettyfier.pretty(toJson(getTestObject1()), "#", "^"));
         assertEquals(
-                Json.pretty(toJson(getTestObject1())),
-                Json.pretty(Json.pretty(Json.pretty(Json.pretty(toJson(getTestObject1())))))
+                JsonPrettyfier.pretty(toJson(getTestObject1())),
+                JsonPrettyfier.pretty(JsonPrettyfier.pretty(JsonPrettyfier.pretty(JsonPrettyfier.pretty(toJson(getTestObject1())))))
         );
     }
 

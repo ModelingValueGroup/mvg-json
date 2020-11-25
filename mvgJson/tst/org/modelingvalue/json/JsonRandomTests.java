@@ -15,12 +15,16 @@
 
 package org.modelingvalue.json;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.nio.charset.*;
-import java.util.*;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.RepeatedTest;
 
 public class JsonRandomTests {
     @RepeatedTest(1)
@@ -32,17 +36,34 @@ public class JsonRandomTests {
         Object copy1 = Json.fromJson(json1);
         String json2 = Json.toJson(copy1);
         Object copy2 = Json.fromJson(json2);
+        long   chars = json1.length();
+
+        double mps = (1000.0 * chars) / (1024.0 * 1024.0 * (System.currentTimeMillis() - t0));
+        System.err.printf("handled    %7.2f Mb/s json in %6d run\n", mps, 1);
+
         assertEquals(copy1, copy2);
         assertEquals(json1, json2);
-        int chars = json1.length();
 
-        System.err.println("handled " + (chars / 1024) + " kb json in 1 run in " + (System.currentTimeMillis() - t0) + " ms");
+    }
+
+    @RepeatedTest(10)
+    public void prettify() {
+        String json = JsonCustomTests.readData("test.json");
+
+        long t0 = System.currentTimeMillis();
+        for (int i = 0; i < 100; i++) {
+            json = JsonPrettyfier.pretty(json);
+        }
+        long delta = System.currentTimeMillis() - t0;
+
+        double mps = (100.0 * 1000.0 * json.length()) / (1024.0 * 1024.0 * delta);
+        System.err.printf("prettified %7.2f Mb/s json\n", mps);
     }
 
     @RepeatedTest(1)
     public void manySmallObjectsToJson() {
         long t0    = System.currentTimeMillis();
-        int  chars = 0;
+        long chars = 0;
         int  i     = 0;
         while (System.currentTimeMillis() < t0 + 2_000) {
 
@@ -57,7 +78,8 @@ public class JsonRandomTests {
             chars += json1.length();
             i++;
         }
-        System.err.println("handled " + (chars / 1024) + " kb json in " + i + " runs in " + (System.currentTimeMillis() - t0) + " ms");
+        double mps = (1000.0 * chars) / (1024.0 * 1024.0 * (System.currentTimeMillis() - t0));
+        System.err.printf("handled    %7.2f Mb/s json in %6d runs\n", mps, i);
     }
 
     private static final Random random = new Random();

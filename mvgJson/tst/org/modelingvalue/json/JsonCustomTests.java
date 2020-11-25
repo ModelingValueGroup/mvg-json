@@ -36,12 +36,12 @@ public class JsonCustomTests {
         assertEquals("592,519,1588,1331,1735,22,29", CountingTesterFromJson.fromJson(testData));
     }
 
-    public String readData(String name) {
+    public static String readData(String name) {
         try (BufferedReader is = new BufferedReader(new InputStreamReader(JsonCustomTests.class.getResourceAsStream(name)))) {
             return is.lines().collect(Collectors.joining());
         } catch (IOException e) {
             fail();
-            return null;
+            return "";
         }
     }
 
