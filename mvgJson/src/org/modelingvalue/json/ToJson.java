@@ -15,10 +15,21 @@
 
 package org.modelingvalue.json;
 
-import java.lang.reflect.*;
-import java.util.*;
-import java.util.Map.*;
-import java.util.function.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.function.Predicate;
 
 @SuppressWarnings("unused")
 public class ToJson {
@@ -433,12 +444,16 @@ public class ToJson {
     }
 
     protected void jsonFromString(String o) {
-        b.append('"');
-        final int length = o.length();
-        for (int i = 0; i < length; i++) {
-            appendStringCharacter(o.charAt(i));
+        if (o == null) {
+            b.append("\"null\"");
+        } else {
+            b.append('"');
+            final int length = o.length();
+            for (int i = 0; i < length; i++) {
+                appendStringCharacter(o.charAt(i));
+            }
+            b.append('"');
         }
-        b.append('"');
     }
 
     private void appendStringCharacter(char ch) {
