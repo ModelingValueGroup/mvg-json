@@ -1,118 +1,125 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="module_mvgjson" default="compile.module.mvgjson">
   <dirname property="module.mvgjson.basedir" file="${ant.file.module_mvgjson}"/>
-
-    <property name="module.jdk.home.mvgjson" value="${project.jdk.home}"/>
+  <property name="module.jdk.home.mvgjson" value="${project.jdk.home}"/>
   <property name="module.jdk.bin.mvgjson" value="${project.jdk.bin}"/>
   <property name="module.jdk.classpath.mvgjson" value="${project.jdk.classpath}"/>
-
-    <property name="compiler.args.mvgjson" value="-encoding UTF-8 -source 11 -target 11 ${compiler.args}"/>
-
-    <property name="mvgjson.output.dir" value="${module.mvgjson.basedir}/../out/production/mvgJson"/>
+  <property name="compiler.args.mvgjson" value="-encoding UTF-8 -source 11 -target 11 ${compiler.args}"/>
+  <property name="mvgjson.output.dir" value="${module.mvgjson.basedir}/../out/production/mvgJson"/>
   <property name="mvgjson.testoutput.dir" value="${module.mvgjson.basedir}/../out/test/mvgJson"/>
-
-    <path id="mvgjson.module.bootclasspath">
+  <path id="mvgjson.module.bootclasspath">
     <!-- Paths to be included in compilation bootclasspath -->
   </path>
-
-    <path id="mvgjson.module.production.classpath">
+  <path id="mvgjson.module.production.classpath">
     <path refid="${module.jdk.classpath.mvgjson}"/>
   </path>
-
-    <path id="mvgjson.runtime.production.module.classpath">
+  <path id="mvgjson.runtime.production.module.classpath">
     <pathelement location="${mvgjson.output.dir}"/>
   </path>
-
-    <path id="mvgjson.module.classpath">
+  <path id="mvgjson.module.classpath">
     <path refid="${module.jdk.classpath.mvgjson}"/>
     <pathelement location="${mvgjson.output.dir}"/>
-        <path refid="library.gen:_junit-platform-commons.classpath"/>
+    <path refid="library.gen:_junit-platform-commons.classpath"/>
     <path refid="library.gen:_junit-jupiter-api.classpath"/>
     <path refid="library.gen:_junit-jupiter-engine.classpath"/>
-        <path refid="library.gen:_junit-jupiter-params.classpath"/>
+    <path refid="library.gen:_junit-jupiter-params.classpath"/>
     <path refid="library.gen:_junit-platform-engine.classpath"/>
     <path refid="library.gen:_junit-platform-launcher.classpath"/>
-        <path refid="library.gen:_apiguardian-api.classpath"/>
+    <path refid="library.gen:_apiguardian-api.classpath"/>
     <path refid="library.gen:_opentest4j.classpath"/>
   </path>
-
-    <path id="mvgjson.runtime.module.classpath">
+  <path id="mvgjson.runtime.module.classpath">
     <pathelement location="${mvgjson.testoutput.dir}"/>
     <pathelement location="${mvgjson.output.dir}"/>
-        <path refid="library.gen:_junit-platform-commons.classpath"/>
+    <path refid="library.gen:_junit-platform-commons.classpath"/>
     <path refid="library.gen:_junit-jupiter-api.classpath"/>
     <path refid="library.gen:_junit-jupiter-engine.classpath"/>
-        <path refid="library.gen:_junit-jupiter-params.classpath"/>
+    <path refid="library.gen:_junit-jupiter-params.classpath"/>
     <path refid="library.gen:_junit-platform-engine.classpath"/>
     <path refid="library.gen:_junit-platform-launcher.classpath"/>
-        <path refid="library.gen:_apiguardian-api.classpath"/>
+    <path refid="library.gen:_apiguardian-api.classpath"/>
     <path refid="library.gen:_opentest4j.classpath"/>
   </path>
-
-
-    <patternset id="excluded.from.module.mvgjson">
+  <patternset id="excluded.from.module.mvgjson">
     <patternset refid="ignored.files"/>
   </patternset>
-
-    <patternset id="excluded.from.compilation.mvgjson">
+  <patternset id="excluded.from.compilation.mvgjson">
     <patternset refid="excluded.from.module.mvgjson"/>
   </patternset>
-
-    <path id="mvgjson.module.sourcepath">
+  <path id="mvgjson.module.sourcepath">
     <dirset dir="${module.mvgjson.basedir}">
       <include name="src"/>
     </dirset>
   </path>
-
-    <path id="mvgjson.module.test.sourcepath">
+  <path id="mvgjson.module.test.sourcepath">
     <dirset dir="${module.mvgjson.basedir}">
       <include name="tst"/>
     </dirset>
   </path>
-
-
-    <target name="compile.module.mvgjson" depends="compile.module.mvgjson.production,compile.module.mvgjson.tests" description="Compile module mvgJson"/>
-
-    <target name="compile.module.mvgjson.production" description="Compile module mvgJson; production classes">
+  <target name="compile.module.mvgjson" depends="compile.module.mvgjson.production,compile.module.mvgjson.tests" description="Compile module mvgJson"/>
+  <target name="compile.module.mvgjson.production" description="Compile module mvgJson; production classes">
     <mkdir dir="${mvgjson.output.dir}"/>
-        <javac destdir="${mvgjson.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}"
-               memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.mvgjson}/javac">
-            <compilerarg line="${compiler.args.mvgjson}"/>
-            <bootclasspath refid="mvgjson.module.bootclasspath"/>
-            <classpath refid="mvgjson.module.production.classpath"/>
-            <src refid="mvgjson.module.sourcepath"/>
-            <patternset refid="excluded.from.compilation.mvgjson"/>
-        </javac>
-
-        <copy todir="${mvgjson.output.dir}">
+    <javac includeantruntime="false" destdir="${mvgjson.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.mvgjson}/javac">
+      <compilerarg line="${compiler.args.mvgjson}"/>
+      <bootclasspath refid="mvgjson.module.bootclasspath"/>
+      <classpath refid="mvgjson.module.production.classpath"/>
+      <src refid="mvgjson.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.mvgjson"/>
+    </javac>
+    <copy todir="${mvgjson.output.dir}">
       <fileset dir="${module.mvgjson.basedir}/src">
         <patternset refid="compiler.resources"/>
         <type type="file"/>
       </fileset>
     </copy>
   </target>
-
-    <target name="compile.module.mvgjson.tests" depends="compile.module.mvgjson.production" description="compile module mvgJson; test classes" unless="skip.tests">
+  <target name="compile.module.mvgjson.tests" depends="compile.module.mvgjson.production" description="compile module mvgJson; test classes" unless="skip.tests">
     <mkdir dir="${mvgjson.testoutput.dir}"/>
-        <javac destdir="${mvgjson.testoutput.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}"
-               memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.mvgjson}/javac">
-            <compilerarg line="${compiler.args.mvgjson}"/>
-            <bootclasspath refid="mvgjson.module.bootclasspath"/>
-            <classpath refid="mvgjson.module.classpath"/>
-            <src refid="mvgjson.module.test.sourcepath"/>
-            <patternset refid="excluded.from.compilation.mvgjson"/>
-        </javac>
-
-        <copy todir="${mvgjson.testoutput.dir}">
+    <javac includeantruntime="false" destdir="${mvgjson.testoutput.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.mvgjson}/javac">
+      <compilerarg line="${compiler.args.mvgjson}"/>
+      <bootclasspath refid="mvgjson.module.bootclasspath"/>
+      <classpath refid="mvgjson.module.classpath"/>
+      <src refid="mvgjson.module.test.sourcepath"/>
+      <patternset refid="excluded.from.compilation.mvgjson"/>
+    </javac>
+    <copy todir="${mvgjson.testoutput.dir}">
       <fileset dir="${module.mvgjson.basedir}/tst">
         <patternset refid="compiler.resources"/>
         <type type="file"/>
       </fileset>
     </copy>
   </target>
-
-    <target name="clean.module.mvgjson" description="cleanup module">
+  <target name="clean.module.mvgjson" description="cleanup module">
     <delete dir="${mvgjson.output.dir}"/>
     <delete dir="${mvgjson.testoutput.dir}"/>
+  </target>
+  <target name="test.module.mvgjson">
+    <junitlauncher haltOnFailure="true" printSummary="true">
+      <classpath refid="mvgjson.runtime.module.classpath"/>
+      <testclasses outputdir=".">
+        <fileset dir="${mvgjson.testoutput.dir}">
+          <include name="**/*Test.*"/>
+          <include name="**/*Tests.*"/>
+        </fileset>
+        <listener type="legacy-xml" sendSysOut="true" sendSysErr="true"/>
+        <listener type="legacy-plain" sendSysOut="true"/>
+      </testclasses>
+    </junitlauncher>
+  </target>
+  <target name="testresults.module.mvgjson" depends="test.module.mvgjson">
+    <mkdir dir="${basedir}/out/artifacts"/>
+    <jar destfile="${basedir}/out/artifacts/mvgJson-testresults.jar" filesetmanifest="skip">
+      <zipfileset file="${basedir}/TEST-*.xml"/>
+    </jar>
+  </target>
+  <target name="javadoc.module.mvgjson">
+    <property name="mvgjson.javadoc.dir" value="${basedir}/out/artifacts"/>
+    <property name="mvgjson.javadoc.tmp" value="${mvgjson.javadoc.dir}/tmp"/>
+    <property name="mvgjson.javadoc.jar" value="${mvgjson.javadoc.dir}/mvgJson-javadoc.jar"/>
+    <javadoc sourcepathref="mvgjson.module.sourcepath" destdir="${mvgjson.javadoc.tmp}" classpathref="mvgjson.module.classpath"/>
+    <jar destfile="${mvgjson.javadoc.jar}" filesetmanifest="skip">
+      <zipfileset dir="${mvgjson.javadoc.tmp}"/>
+    </jar>
+    <delete dir="${mvgjson.javadoc.tmp}"/>
   </target>
 </project>
