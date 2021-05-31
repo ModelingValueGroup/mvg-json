@@ -15,7 +15,10 @@
 
 package org.modelingvalue.json;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class FromJson extends FromJsonBase<Iterable<Object>, Map<String, Object>> {
     public static Object fromJson(String s) {

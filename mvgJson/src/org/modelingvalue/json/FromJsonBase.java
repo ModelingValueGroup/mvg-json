@@ -15,8 +15,8 @@
 
 package org.modelingvalue.json;
 
-import java.util.*;
-import java.util.function.*;
+import java.util.Objects;
+import java.util.function.Supplier;
 
 public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     private static final String  TRUE_STRING  = "true";
@@ -37,7 +37,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     }
 
     protected Object parse() {
-        i = 0;
+        i     = 0;
         level = 0;
         index = 0;
         next(0);
@@ -113,7 +113,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
 
     protected void next(int skip) {
         i += skip;
-        eof = input.length() <= i;
+        eof     = input.length() <= i;
         current = eof ? EOF_CHAR : input.charAt(i);
     }
 
@@ -316,8 +316,8 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
             c1 = i <= start + 2 ? null : input.charAt(start + 2);
         }
         if (c0 == null
-                || !('0' <= c0 && c0 <= '9')
-                || (c0 == '0' && c1 != null && c1 != '.') && c1 != 'e' && c1 != 'E') {
+            || !('0' <= c0 && c0 <= '9')
+            || (c0 == '0' && c1 != null && c1 != '.') && c1 != 'e' && c1 != 'E') {
             i = start;
             throw error();
         }
