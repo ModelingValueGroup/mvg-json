@@ -110,26 +110,26 @@ public class ToJson {
 
     protected Predicate<Field> getIntrospectionFieldFilter() {
         return f -> !f.isSynthetic()
-                && !f.isEnumConstant()
-                && !Modifier.isStatic(f.getModifiers())
-                && !Modifier.isVolatile(f.getModifiers())
-                && !Modifier.isNative(f.getModifiers())
-                && !Modifier.isTransient(f.getModifiers())
-                && (Modifier.isPublic(f.getModifiers()) || !f.getDeclaringClass().getPackage().getName().startsWith("java."))
+                    && !f.isEnumConstant()
+                    && !Modifier.isStatic(f.getModifiers())
+                    && !Modifier.isVolatile(f.getModifiers())
+                    && !Modifier.isNative(f.getModifiers())
+                    && !Modifier.isTransient(f.getModifiers())
+                    && (Modifier.isPublic(f.getModifiers()) || !f.getDeclaringClass().getPackage().getName().startsWith("java."))
                 ;
     }
 
     protected Predicate<Method> getIntrospectionMethodFilter() {
         return f -> !f.isSynthetic()
-                && f.getParameterCount() == 0
-                && f.getReturnType() != Void.class
-                && !f.isDefault()
-                && !Modifier.isStatic(f.getModifiers())
-                && !Modifier.isVolatile(f.getModifiers())
-                && !Modifier.isNative(f.getModifiers())
-                && !Modifier.isTransient(f.getModifiers())
-                && (Modifier.isPublic(f.getModifiers()) || !f.getDeclaringClass().getPackage().getName().startsWith("java."))
-                && f.getName().matches("^(get|is)[A-Z].*")
+                    && f.getParameterCount() == 0
+                    && f.getReturnType() != Void.class
+                    && !f.isDefault()
+                    && !Modifier.isStatic(f.getModifiers())
+                    && !Modifier.isVolatile(f.getModifiers())
+                    && !Modifier.isNative(f.getModifiers())
+                    && !Modifier.isTransient(f.getModifiers())
+                    && (Modifier.isPublic(f.getModifiers()) || !f.getDeclaringClass().getPackage().getName().startsWith("java."))
+                    && f.getName().matches("^(get|is)[A-Z].*")
                 ;
     }
 
