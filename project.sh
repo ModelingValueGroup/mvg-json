@@ -25,7 +25,7 @@
 #===================================================================
 version='1.6.0'
 artifacts=(
-  "org.modelingvalue   mvgjson                 $version    jar jds"
+  "org.modelingvalue   mvg-json                $version    jar jds"
 )
 dependencies=(
   "org.junit.jupiter   junit-jupiter-api       5.7.2       jar jdst"
