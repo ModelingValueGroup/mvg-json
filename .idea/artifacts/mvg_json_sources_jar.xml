@@ -1,7 +1,7 @@
 <component name="ArtifactManager">
-  <artifact type="jar" name="mvgJson-sources:jar">
+  <artifact type="jar" name="mvg-json-sources:jar">
     <output-path>$PROJECT_DIR$/out/artifacts</output-path>
-    <root id="archive" name="mvgJson-sources.jar">
+    <root id="archive" name="mvg-json-sources.jar">
       <element id="dir-copy" path="$PROJECT_DIR$/mvg-json/src" />
       <element id="dir-copy" path="$PROJECT_DIR$/mvg-json/tst" />
     </root>
