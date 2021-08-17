@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="mvgjson" default="all">
+<project name="mvg-json" default="all">
   <property file="build.properties"/>
   <!-- Uncomment the following property if no tests compilation is needed -->
   <!-- 
@@ -157,12 +157,12 @@
   </path>
   <!-- Global Libraries -->
   <!-- Modules -->
-  <import file="${basedir}/mvgJson/module_mvgjson.xml"/>
+  <import file="${basedir}/mvg-json/module_mvg-json.xml"/>
   <target name="init" description="Build initialization">
     <!-- Perform any build initialization in this target -->
   </target>
-  <target name="clean" depends="clean.module.mvgjson" description="cleanup all"/>
-  <target name="build.modules" depends="init, clean, compile.module.mvgjson" description="build all modules"/>
+  <target name="clean" depends="clean.module.mvg-json" description="cleanup all"/>
+  <target name="build.modules" depends="init, clean, compile.module.mvg-json" description="build all modules"/>
   <target name="init.artifacts">
     <property name="artifacts.temp.dir" value="${basedir}/__artifacts_temp"/>
     <property name="artifact.output.mvgjson-sources:jar" value="${basedir}/out/artifacts"/>
@@ -175,16 +175,16 @@
     <property name="artifact.temp.output.mvgjson-sources:jar" value="${artifacts.temp.dir}/mvgJson_sources_jar"/>
     <mkdir dir="${artifact.temp.output.mvgjson-sources:jar}"/>
     <jar destfile="${temp.jar.path.mvgJson-sources.jar}" duplicate="preserve" filesetmanifest="merge">
-      <zipfileset dir="${basedir}/mvgJson/src"/>
-      <zipfileset dir="${basedir}/mvgJson/tst"/>
+      <zipfileset dir="${basedir}/mvg-json/src"/>
+      <zipfileset dir="${basedir}/mvg-json/tst"/>
     </jar>
     <copy file="${temp.jar.path.mvgJson-sources.jar}" tofile="${artifact.temp.output.mvgjson-sources:jar}/mvgJson-sources.jar"/>
   </target>
-  <target name="artifact.mvgjson:jar" depends="init.artifacts, compile.module.mvgjson" description="Build 'mvgJson:jar' artifact">
+  <target name="artifact.mvgjson:jar" depends="init.artifacts, compile.module.mvg-json" description="Build 'mvgJson:jar' artifact">
     <property name="artifact.temp.output.mvgjson:jar" value="${artifacts.temp.dir}/mvgJson_jar"/>
     <mkdir dir="${artifact.temp.output.mvgjson:jar}"/>
     <jar destfile="${temp.jar.path.mvgJson.jar}" duplicate="preserve" filesetmanifest="merge">
-      <zipfileset dir="${mvgjson.output.dir}"/>
+      <zipfileset dir="${mvg-json.output.dir}"/>
     </jar>
     <copy file="${temp.jar.path.mvgJson.jar}" tofile="${artifact.temp.output.mvgjson:jar}/mvgJson.jar"/>
   </target>
@@ -201,10 +201,10 @@
     <delete dir="${artifacts.temp.dir}"/>
   </target>
   <target name="all" depends="build.modules, build.all.artifacts" description="build all"/>
-  <target name="test" depends="testresults.module.mvgjson">
+  <target name="test" depends="testresults.module.mvg-json">
     <echo>all done for test</echo>
   </target>
-  <target name="javadoc" depends="javadoc.module.mvgjson">
+  <target name="javadoc" depends="javadoc.module.mvg-json">
     <echo>all done for javadoc</echo>
   </target>
 </project>

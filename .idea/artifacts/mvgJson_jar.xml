@@ -2,7 +2,7 @@
   <artifact type="jar" build-on-make="true" name="mvgJson:jar">
     <output-path>$PROJECT_DIR$/out/artifacts</output-path>
     <root id="archive" name="mvgJson.jar">
-      <element id="module-output" name="mvgJson" />
+      <element id="module-output" name="mvg-json" />
     </root>
   </artifact>
 </component>

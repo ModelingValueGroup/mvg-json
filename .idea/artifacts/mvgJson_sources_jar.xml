@@ -2,8 +2,8 @@
   <artifact type="jar" name="mvgJson-sources:jar">
     <output-path>$PROJECT_DIR$/out/artifacts</output-path>
     <root id="archive" name="mvgJson-sources.jar">
-      <element id="dir-copy" path="$PROJECT_DIR$/mvgJson/src" />
-      <element id="dir-copy" path="$PROJECT_DIR$/mvgJson/tst" />
+      <element id="dir-copy" path="$PROJECT_DIR$/mvg-json/src" />
+      <element id="dir-copy" path="$PROJECT_DIR$/mvg-json/tst" />
     </root>
   </artifact>
 </component>
