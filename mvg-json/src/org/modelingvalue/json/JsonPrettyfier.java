@@ -48,9 +48,9 @@ public class JsonPrettyfier {
 
     private JsonPrettyfier(String json, String indentString, String eolString) {
         this.indentString = indentString;
-        this.eolString = eolString;
-        charArray = json.toCharArray();
-        indentEnabled = indentString != null;
+        this.eolString    = eolString;
+        charArray         = json.toCharArray();
+        indentEnabled     = indentString != null;
         if ((indentString == null) != (eolString == null)) {
             throw new Error("Json: indent and eol must both be set or not set");
         }

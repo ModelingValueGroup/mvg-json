@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="mvgjson" default="all">
+<project name="mvg-json" default="all">
   <property file="build.properties"/>
   <!-- Uncomment the following property if no tests compilation is needed -->
   <!-- 
@@ -11,7 +11,6 @@
   <property name="compiler.args" value=""/>
   <property name="compiler.max.memory" value="700m"/>
   <patternset id="ignored.files">
-    <exclude name="**/*.hprof/**"/>
     <exclude name="**/*.pyc/**"/>
     <exclude name="**/*.pyo/**"/>
     <exclude name="**/*.rbc/**"/>
@@ -112,6 +111,7 @@
       <include name="../Home!/jdk.management.agent"/>
       <include name="../Home!/jdk.management.jfr"/>
       <include name="../Home!/jdk.naming.dns"/>
+      <include name="../Home!/jdk.naming.ldap"/>
       <include name="../Home!/jdk.naming.rmi"/>
       <include name="../Home!/jdk.net"/>
       <include name="../Home!/jdk.pack"/>
@@ -140,6 +140,9 @@
   <path id="library.gen:_junit-jupiter-engine.classpath">
     <pathelement location="${basedir}/lib/junit-jupiter-engine.jar"/>
   </path>
+  <path id="library.gen:_junit-jupiter-params.classpath">
+    <pathelement location="${basedir}/lib/junit-jupiter-params.jar"/>
+  </path>
   <path id="library.gen:_junit-platform-commons.classpath">
     <pathelement location="${basedir}/lib/junit-platform-commons.jar"/>
   </path>
@@ -152,55 +155,56 @@
   <path id="library.gen:_opentest4j.classpath">
     <pathelement location="${basedir}/lib/opentest4j.jar"/>
   </path>
+  <!-- Global Libraries -->
   <!-- Modules -->
-  <import file="${basedir}/mvgJson/module_mvgjson.xml"/>
+  <import file="${basedir}/mvg-json/module_mvg-json.xml"/>
   <target name="init" description="Build initialization">
     <!-- Perform any build initialization in this target -->
   </target>
-  <target name="clean" depends="clean.module.mvgjson" description="cleanup all"/>
-  <target name="build.modules" depends="init, clean, compile.module.mvgjson" description="build all modules"/>
+  <target name="clean" depends="clean.module.mvg-json" description="cleanup all"/>
+  <target name="build.modules" depends="init, clean, compile.module.mvg-json" description="build all modules"/>
   <target name="init.artifacts">
     <property name="artifacts.temp.dir" value="${basedir}/__artifacts_temp"/>
-    <property name="artifact.output.mvgjson-sources:jar" value="${basedir}/out/artifacts"/>
-    <property name="artifact.output.mvgjson:jar" value="${basedir}/out/artifacts"/>
+    <property name="artifact.output.mvg-json-sources:jar" value="${basedir}/out/artifacts"/>
+    <property name="artifact.output.mvg-json:jar" value="${basedir}/out/artifacts"/>
     <mkdir dir="${artifacts.temp.dir}"/>
-    <property name="temp.jar.path.mvgJson-sources.jar" value="${artifacts.temp.dir}/mvgJson-sources.jar"/>
-    <property name="temp.jar.path.mvgJson.jar" value="${artifacts.temp.dir}/mvgJson.jar"/>
+    <property name="temp.jar.path.mvg-json-sources.jar" value="${artifacts.temp.dir}/mvg-json-sources.jar"/>
+    <property name="temp.jar.path.mvg-json.jar" value="${artifacts.temp.dir}/mvg-json.jar"/>
   </target>
-  <target name="artifact.mvgjson-sources:jar" depends="init.artifacts" description="Build 'mvgJson-sources:jar' artifact">
-    <property name="artifact.temp.output.mvgjson-sources:jar" value="${artifacts.temp.dir}/mvgJson_sources_jar"/>
-    <mkdir dir="${artifact.temp.output.mvgjson-sources:jar}"/>
-    <jar destfile="${temp.jar.path.mvgJson-sources.jar}" duplicate="preserve" filesetmanifest="merge">
-      <zipfileset dir="${basedir}/mvgJson/src"/>
-      <zipfileset dir="${basedir}/mvgJson/tst"/>
+  <target name="artifact.mvg-json-sources:jar" depends="init.artifacts" description="Build 'mvg-json-sources:jar' artifact">
+    <property name="artifact.temp.output.mvg-json-sources:jar" value="${artifacts.temp.dir}/mvg_json_sources_jar"/>
+    <mkdir dir="${artifact.temp.output.mvg-json-sources:jar}"/>
+    <jar destfile="${temp.jar.path.mvg-json-sources.jar}" duplicate="preserve" filesetmanifest="merge">
+      <zipfileset dir="${basedir}/mvg-json/src"/>
+      <zipfileset dir="${basedir}/mvg-json/tst"/>
     </jar>
-    <copy file="${temp.jar.path.mvgJson-sources.jar}" tofile="${artifact.temp.output.mvgjson-sources:jar}/mvgJson-sources.jar"/>
+    <copy file="${temp.jar.path.mvg-json-sources.jar}" tofile="${artifact.temp.output.mvg-json-sources:jar}/mvg-json-sources.jar"/>
   </target>
-  <target name="artifact.mvgjson:jar" depends="init.artifacts, compile.module.mvgjson" description="Build 'mvgJson:jar' artifact">
-    <property name="artifact.temp.output.mvgjson:jar" value="${artifacts.temp.dir}/mvgJson_jar"/>
-    <mkdir dir="${artifact.temp.output.mvgjson:jar}"/>
-    <jar destfile="${temp.jar.path.mvgJson.jar}" duplicate="preserve" filesetmanifest="merge">
-      <zipfileset dir="${mvgjson.output.dir}"/>
+  <target name="artifact.mvg-json:jar" depends="init.artifacts, compile.module.mvg-json" description="Build 'mvg-json:jar' artifact">
+    <property name="artifact.temp.output.mvg-json:jar" value="${artifacts.temp.dir}/mvg_json_jar"/>
+    <mkdir dir="${artifact.temp.output.mvg-json:jar}"/>
+    <jar destfile="${temp.jar.path.mvg-json.jar}" duplicate="preserve" filesetmanifest="merge">
+      <zipfileset dir="${mvg-json.output.dir}"/>
     </jar>
-    <copy file="${temp.jar.path.mvgJson.jar}" tofile="${artifact.temp.output.mvgjson:jar}/mvgJson.jar"/>
+    <copy file="${temp.jar.path.mvg-json.jar}" tofile="${artifact.temp.output.mvg-json:jar}/mvg-json.jar"/>
   </target>
-  <target name="build.all.artifacts" depends="artifact.mvgjson-sources:jar, artifact.mvgjson:jar" description="Build all artifacts">
-    <mkdir dir="${artifact.output.mvgjson-sources:jar}"/>
-    <copy todir="${artifact.output.mvgjson-sources:jar}">
-      <fileset dir="${artifact.temp.output.mvgjson-sources:jar}"/>
+  <target name="build.all.artifacts" depends="artifact.mvg-json-sources:jar, artifact.mvg-json:jar" description="Build all artifacts">
+    <mkdir dir="${artifact.output.mvg-json-sources:jar}"/>
+    <copy todir="${artifact.output.mvg-json-sources:jar}">
+      <fileset dir="${artifact.temp.output.mvg-json-sources:jar}"/>
     </copy>
-    <mkdir dir="${artifact.output.mvgjson:jar}"/>
-    <copy todir="${artifact.output.mvgjson:jar}">
-      <fileset dir="${artifact.temp.output.mvgjson:jar}"/>
+    <mkdir dir="${artifact.output.mvg-json:jar}"/>
+    <copy todir="${artifact.output.mvg-json:jar}">
+      <fileset dir="${artifact.temp.output.mvg-json:jar}"/>
     </copy>
     <!-- Delete temporary files -->
     <delete dir="${artifacts.temp.dir}"/>
   </target>
   <target name="all" depends="build.modules, build.all.artifacts" description="build all"/>
-  <target name="test" depends="testresults.module.mvgjson">
+  <target name="test" depends="testresults.module.mvg-json">
     <echo>all done for test</echo>
   </target>
-  <target name="javadoc" depends="javadoc.module.mvgjson">
+  <target name="javadoc" depends="javadoc.module.mvg-json">
     <echo>all done for javadoc</echo>
   </target>
 </project>

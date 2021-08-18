@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/mvgJson/mvgJson.iml" filepath="$PROJECT_DIR$/mvgJson/mvgJson.iml" />
+      <module fileurl="file://$PROJECT_DIR$/mvg-json/mvg-json.iml" filepath="$PROJECT_DIR$/mvg-json/mvg-json.iml" />
     </modules>
   </component>
 </project>

@@ -77,26 +77,26 @@ jobs:
       - name: "publish action-artifact jar"
         uses: actions/upload-artifact@v2.2.3
         with:
-          name: mvgJson.jar
-          path: out/artifacts/mvgJson.jar
+          name: mvg-json.jar
+          path: out/artifacts/mvg-json.jar
 
       - name: "publish action-artifact sources"
         uses: actions/upload-artifact@v2.2.3
         with:
-          name: mvgJson-sources.jar
-          path: out/artifacts/mvgJson-sources.jar
+          name: mvg-json-sources.jar
+          path: out/artifacts/mvg-json-sources.jar
 
       - name: "publish action-artifact javadoc"
         uses: actions/upload-artifact@v2.2.3
         with:
-          name: mvgJson-javadoc.jar
-          path: out/artifacts/mvgJson-javadoc.jar
+          name: mvg-json-javadoc.jar
+          path: out/artifacts/mvg-json-javadoc.jar
 
       - name: "publish action-artifact test-results"
         uses: actions/upload-artifact@v2.2.3
         with:
-          name: mvgJson-testresults.jar
-          path: out/artifacts/mvgJson-testresults.jar
+          name: mvg-json-testresults.jar
+          path: out/artifacts/mvg-json-testresults.jar
 
       - name: "if NOT master: saving snapshots for other projects on this branch"
         if: github.ref != 'refs/heads/master'
@@ -114,4 +114,4 @@ jobs:
         uses: ModelingValueGroup/upload-maven-package-action@master
         if  : github.ref == 'refs/heads/master'
         with:
-          file : "out/artifacts/mvgJson.jar"
+          file : "out/artifacts/mvg-json.jar"

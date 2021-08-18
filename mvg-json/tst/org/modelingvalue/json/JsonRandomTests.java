@@ -65,7 +65,7 @@ public class JsonRandomTests {
         long t0    = System.currentTimeMillis();
         long chars = 0;
         int  i     = 0;
-        while (System.currentTimeMillis() < t0 + 2_000) {
+        while (System.currentTimeMillis() < t0 + 20_000) {
 
             Object original = randomObject(5);
             String json1    = Json.toJson(original);
@@ -78,11 +78,12 @@ public class JsonRandomTests {
             chars += json1.length();
             i++;
         }
-        double mps = (1000.0 * chars) / (1024.0 * 1024.0 * (System.currentTimeMillis() - t0));
-        System.err.printf("handled    %7.2f Mb/s json in %6d runs\n", mps, i);
+        long   dt  = System.currentTimeMillis() - t0;
+        double mps = (1000.0 * chars) / (1024.0 * 1024.0 * dt);
+        System.err.printf("handled    %7.2f Mb/s json in %6d runs in %d ms\n", mps, i, dt);
     }
 
-    private static final Random random = new Random();
+    private static final Random random = new Random(4711);
 
     public static Object randomObject(int depth) {
         if (((double) depth) < random.nextDouble()) {

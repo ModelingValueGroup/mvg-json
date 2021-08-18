@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="mvg-json:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts</output-path>
+    <root id="archive" name="mvg-json.jar">
+      <element id="module-output" name="mvg-json" />
+    </root>
+  </artifact>
+</component>
