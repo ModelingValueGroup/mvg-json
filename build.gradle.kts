@@ -22,7 +22,7 @@ plugins {
 }
 publishing {
     publications {
-        create<MavenPublication>("mvgjson") {
+        create<MavenPublication>("mvg-json") {
             from(components["java"])
         }
     }
