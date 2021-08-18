@@ -75,25 +75,25 @@ jobs:
         run:  ant javadoc
 
       - name: "publish action-artifact jar"
-        uses: actions/upload-artifact@v2.2.1
+        uses: actions/upload-artifact@v2.2.3
         with:
           name: mvg-json.jar
           path: out/artifacts/mvg-json.jar
 
       - name: "publish action-artifact sources"
-        uses: actions/upload-artifact@v2.2.1
+        uses: actions/upload-artifact@v2.2.3
         with:
           name: mvg-json-sources.jar
           path: out/artifacts/mvg-json-sources.jar
 
       - name: "publish action-artifact javadoc"
-        uses: actions/upload-artifact@v2.2.1
+        uses: actions/upload-artifact@v2.2.3
         with:
           name: mvg-json-javadoc.jar
           path: out/artifacts/mvg-json-javadoc.jar
 
       - name: "publish action-artifact test-results"
-        uses: actions/upload-artifact@v2.2.1
+        uses: actions/upload-artifact@v2.2.3
         with:
           name: mvg-json-testresults.jar
           path: out/artifacts/mvg-json-testresults.jar
