@@ -6,6 +6,7 @@
     <option name="numChars" value="15" />
     <option name="caseSensitive" value="false" />
   </component>
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
   <component name="IntelliTail">
     <property name="buffer-wrap" value="false" />
     <property name="buffer-size" value="50" />
@@ -16,18 +17,6 @@
     <property name="tooltip-delay" value="500" />
     <property name="stamp-format" value="'Line read:' yyyy-MM-dd HH:mm:ss" />
   </component>
-  <component name="IvyIDEA.ProjectSettings">
-    <option name="artifactTypeSettings">
-      <ArtifactTypeSettings>
-        <option name="classesTypes" value="jar, mar, sar, war, ear, ejb, bundle, test-jar" />
-        <option name="javadocTypes" value="javadoc, doc, docs, apidoc, apidocs, documentation, documents" />
-        <option name="sourcesTypes" value="source, src, sources, srcs" />
-      </ArtifactTypeSettings>
-    </option>
-    <option name="ivyLogLevelThreshold" value="Info" />
-    <option name="useCustomIvySettings" value="false" />
-    <option name="validateIvyFiles" value="true" />
-  </component>
   <component name="JavadocGenerationManager">
     <option name="OTHER_OPTIONS" value="" />
   </component>
@@ -35,7 +24,10 @@
     <option name="LAST_EDITED_MODULE_NAME" />
     <option name="LAST_EDITED_TAB_NAME" />
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="false" project-jdk-name="11" project-jdk-type="JavaSDK">
+  <component name="NodePackageJsonFileManager">
+    <packageJsonPaths />
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" project-jdk-name="15" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
   <component name="SvnConfiguration" maxAnnotateRevisions="500">
