@@ -15,7 +15,7 @@
 
 defaultTasks("mvgCorrector", "test", "publish", "mvgTagger")
 
-jdk.tools.jlink.resources.plugins {
+plugins {
     `java-library`
     `maven-publish`
     id("org.modelingvalue.gradle.mvgplugin") version "0.4.36"
