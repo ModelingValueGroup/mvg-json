@@ -24,4 +24,4 @@ jobs:
 
       ################################################################################
       - name: "build"
-        run: ./gradlew --stacktrace --debug --scan
+        run: ./gradlew --info --scan
