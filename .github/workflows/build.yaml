@@ -12,6 +12,7 @@ jobs:
       ALLREP_TOKEN: "${{secrets.ALLREP_TOKEN}}"
       TOKEN: "${{secrets.ALLREP_TOKEN}}"
       CI: "true"
+      TOMTOMTOM: "true"
     steps:
       - uses: actions/checkout@v2.3.4
         with:
