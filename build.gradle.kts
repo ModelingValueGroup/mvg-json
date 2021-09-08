@@ -15,6 +15,7 @@
 
 defaultTasks("mvgCorrector", "test", "publish", "mvgTagger")
 
+
 plugins {
     `java-library`
     `maven-publish`
@@ -26,4 +27,8 @@ publishing {
             from(components["java"])
         }
     }
+}
+
+tasks.withType<JavaCompile> {
+    options.encoding = "UTF-8"
 }
