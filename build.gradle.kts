@@ -19,7 +19,7 @@ defaultTasks("mvgCorrector", "test", "publish", "mvgTagger")
 plugins {
     `java-library`
     `maven-publish`
-    id("org.modelingvalue.gradle.mvgplugin") version "0.4.39"
+    id("org.modelingvalue.gradle.mvgplugin") version "0.5.0"
 }
 publishing {
     publications {
@@ -27,8 +27,4 @@ publishing {
             from(components["java"])
         }
     }
-}
-
-tasks.withType<JavaCompile> {
-    options.encoding = "UTF-8"
 }
