@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.util.Map;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.modelingvalue.syncproxy.Main;
@@ -30,6 +31,19 @@ import org.modelingvalue.syncproxy.Main;
 public class ProtocolTests {
     public static final int                         TEST_PORT = 25430;
     private final       TestProtocolHandlerWithPeer tph       = TestProtocolHandlerWithPeer.createPipedWithPeer();
+
+    @AfterEach
+    public void afterEach() throws IOException, InterruptedException {
+        if (!tph.isShutdown()) {
+            tph.shutdown();
+            long t0 = System.currentTimeMillis();
+            while (!tph.isShutdown() && System.currentTimeMillis() < t0 + 30_000) {
+                //noinspection BusyWait
+                Thread.sleep(1);
+            }
+            assertTrue(tph.isShutdown());
+        }
+    }
 
     @Test
     public void onePingTest() {
