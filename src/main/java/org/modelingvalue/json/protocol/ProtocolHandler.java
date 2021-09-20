@@ -20,6 +20,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
@@ -330,7 +331,7 @@ public class ProtocolHandler {
                     try {
                         String line = in.readLine();
                         if (TRACE) {
-                            System.err.printf(">>>%-50s>>>    READ: %s\n", getName(), line == null ? "<null>" : String.format("%" + (20 - line.indexOf(PROTOCOL_SEPARATOR)) + "s%s", "", line));
+                            System.err.printf(">>>%-50s>>>    READ: %s\n", getName(), line == null ? "<EOF>" : String.format("%" + (20 - line.indexOf(PROTOCOL_SEPARATOR)) + "s%s", "", line));
                         }
                         stop = line == null;
                         if (!stop) {
@@ -341,11 +342,20 @@ public class ProtocolHandler {
                                 received(new MessageImpl(split[0], split[1], Long.parseLong(split[2]), nextReceivedMessageNumber.getAndIncrement(), FromJson.fromJson(split[3])));
                             }
                         }
+                    } catch (InterruptedIOException e) {
+                        if (TRACE) {
+                            System.err.printf(">>>%-50s>>>    READ: <interrupted!>\n", getName());
+                        }
+                        stop = true;
                     } catch (IOException e) {
+                        System.err.println("IO");
+                        e.printStackTrace();
                         send_remote_error(e);
                     }
                 }
             } catch (Throwable e) {
+                System.err.println("TH");
+                e.printStackTrace();
                 send_remote_error(e);
             }
             shutdownDone();

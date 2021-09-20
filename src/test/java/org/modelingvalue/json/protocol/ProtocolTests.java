@@ -89,6 +89,9 @@ public class ProtocolTests {
     @Test
     public void shutdownTest() throws IOException, InterruptedException {
         tph.ping();
+        tph.ping();
+        tph.ping();
+        tph.ping();
         Thread.sleep(50);
         tph.shutdown();
         Thread.sleep(50);
@@ -105,10 +108,6 @@ public class ProtocolTests {
         assertEquals(1, tph.getMyPingCount());
         Thread.sleep(10);
         assertEquals(2, tph.getMyPingCount());
-        Thread.sleep(10);
-        assertEquals(3, tph.getMyPingCount());
-        Thread.sleep(10);
-        assertEquals(4, tph.getMyPingCount());
     }
 
     @Test
