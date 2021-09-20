@@ -70,10 +70,13 @@ public class TestProtocolHandler extends ProtocolHandler {
                 for (int i = 0; i < 100; i++) {
                     try {
                         Thread.sleep(10);
+                        ping();
+                    } catch (Error e) {
+                        System.err.println("pinger encountered: " + e.getMessage());
+                        break;
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        break;
                     }
-                    ping();
                 }
             }
         };
