@@ -17,6 +17,7 @@ package org.modelingvalue.json.protocol;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.Map;
@@ -103,11 +104,9 @@ public class ProtocolTests {
         tph.waitForSinglePeer();
         assertEquals(0, tph.getMyPingCount());
         tph.startPingerOnPeer();
-        assertEquals(0, tph.getMyPingCount());
-        Thread.sleep(15);
-        assertEquals(1, tph.getMyPingCount());
-        Thread.sleep(10);
-        assertEquals(2, tph.getMyPingCount());
+        Thread.sleep(500);
+        System.err.println("pinger at " + tph.getMyPingCount());
+        assertTrue(40 < tph.getMyPingCount());
     }
 
     @Test
