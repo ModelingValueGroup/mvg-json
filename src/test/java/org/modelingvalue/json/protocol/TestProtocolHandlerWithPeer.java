@@ -13,23 +13,42 @@
 //     Arjan Kok, Carel Bast                                                                                           ~
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-defaultTasks("mvgCorrector", "test", "publish", "mvgTagger")
+package org.modelingvalue.json.protocol;
 
-plugins {
-    `java-library`
-    `maven-publish`
-    id("org.modelingvalue.gradle.mvgplugin") version "0.5.0"
-}
-repositories {
-    maven("https://maven.pkg.github.com/ModelingValueGroup/sync-proxy")
-}
-dependencies {
-    testImplementation("org.modelingvalue:sync-proxy:2.0.1")
-}
-publishing {
-    publications {
-        create<MavenPublication>("mvg-json") {
-            from(components["java"])
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+
+class TestProtocolHandlerWithPeer extends TestProtocolHandler {
+    public static TestProtocolHandlerWithPeer createPipedWithPeer() {
+        try {
+            PipedInputStream  in      = new PipedInputStream();
+            PipedInputStream  inPeer  = new PipedInputStream();
+            PipedOutputStream out     = new PipedOutputStream(inPeer);
+            PipedOutputStream outPeer = new PipedOutputStream(in);
+            return new TestProtocolHandlerWithPeer(in, out, inPeer, outPeer);
+        } catch (IOException e) {
+            throw new Error("problem during creation", e);
         }
     }
+
+    public final TestProtocolHandler peer;
+
+    public TestProtocolHandlerWithPeer(InputStream in, OutputStream out, InputStream inPeer, OutputStream outPeer) {
+        super("test", in, out);
+        peer = new TestProtocolHandler("peer", inPeer, outPeer);
+        waitForSinglePeer();
+        peer.waitForSinglePeer();
+    }
+
+    public void startPingerOnPeer() {
+        peer.startPinger();
+    }
+
+    public boolean isShutdown() {
+        return super.isShutdown() && peer.isShutdown();
+    }
+
 }
