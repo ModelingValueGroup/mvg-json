@@ -291,8 +291,8 @@ public class ProtocolHandler {
             answerMap = answerMap.entrySet().stream().filter(e -> newPeerMap.containsKey(e.getKey())).collect(Collectors.toMap(Entry::getKey, Entry::getValue));
             answerMap.put(message.senderUuid(), message);
             if (answerMap.size() == newPeerMap.size()) {
-                syncer.complete(answerMap);
                 remove(answerKeyword);
+                syncer.complete(answerMap);
             }
         }
 
