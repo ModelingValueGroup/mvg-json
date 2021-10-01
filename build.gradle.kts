@@ -18,13 +18,13 @@ defaultTasks("mvgCorrector", "test", "publish", "mvgTagger")
 plugins {
     `java-library`
     `maven-publish`
-    id("org.modelingvalue.gradle.mvgplugin") version "0.5.0"
+    id("org.modelingvalue.gradle.mvgplugin") version "0.5.1"
 }
 repositories {
     maven("https://maven.pkg.github.com/ModelingValueGroup/sync-proxy")
 }
 dependencies {
-    testImplementation("org.modelingvalue:sync-proxy:2.0.1")
+    testImplementation("org.modelingvalue:sync-proxy:2.0.2")
 }
 publishing {
     publications {
@@ -32,4 +32,7 @@ publishing {
             from(components["java"])
         }
     }
+}
+tasks.withType<JavaCompile> {
+    options.compilerArgs.add("-Xlint:unchecked")
 }

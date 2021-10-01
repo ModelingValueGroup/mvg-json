@@ -97,8 +97,8 @@ public class TestProtocolHandler extends ProtocolHandler {
         return pingCountMap;
     }
 
+    @SuppressWarnings("unchecked")
     public Map<String, Map<String, Long>> getPingCountMapMap() {
-        //noinspection unchecked
         return getMulti(GET_PING_COUNT_MESSAGE_KEY, PING_COUNT_MESSAGE_KEY, json -> (Map<String, Long>) json);
     }
 
