@@ -18,7 +18,7 @@ defaultTasks("mvgCorrector", "test", "publish", "mvgTagger")
 plugins {
     `java-library`
     `maven-publish`
-    id("org.modelingvalue.gradle.mvgplugin") version "0.5.2"
+    id("org.modelingvalue.gradle.mvgplugin") version "0.5.3"
 }
 repositories {
     maven("https://maven.pkg.github.com/ModelingValueGroup/sync-proxy")
