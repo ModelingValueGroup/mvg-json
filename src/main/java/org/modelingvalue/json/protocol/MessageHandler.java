@@ -13,26 +13,52 @@
 //     Arjan Kok, Carel Bast                                                                                           ~
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-defaultTasks("mvgCorrector", "test", "publish", "mvgTagger")
+package org.modelingvalue.json.protocol;
 
-plugins {
-    `java-library`
-    `maven-publish`
-    id("org.modelingvalue.gradle.mvgplugin") version "0.5.7"
-}
-repositories {
-    maven("https://maven.pkg.github.com/ModelingValueGroup/sync-proxy")
-}
-dependencies {
-    testImplementation("org.modelingvalue:sync-proxy:2.0.2")
-}
-publishing {
-    publications {
-        create<MavenPublication>("mvg-json") {
-            from(components["java"])
-        }
+import java.util.function.Consumer;
+
+public interface MessageHandler {
+    String requestKey();
+
+    String answerKey();
+
+    void handle(Message message);
+
+    static MessageHandler of(String key, Consumer<Message> h) {
+        return new MessageHandler() {
+            @Override
+            public String requestKey() {
+                return key;
+            }
+
+            @Override
+            public String answerKey() {
+                return null;
+            }
+
+            @Override
+            public void handle(Message message) {
+                h.accept(message);
+            }
+        };
     }
-}
-tasks.withType<JavaCompile> {
-    options.compilerArgs.add("-Xlint:unchecked")
+
+    static MessageHandler of(String key, String answerKey, Consumer<Message> h) {
+        return new MessageHandler() {
+            @Override
+            public String requestKey() {
+                return key;
+            }
+
+            @Override
+            public String answerKey() {
+                return answerKey;
+            }
+
+            @Override
+            public void handle(Message message) {
+                h.accept(message);
+            }
+        };
+    }
 }
