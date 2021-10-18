@@ -45,6 +45,8 @@ public class TestProtocolHandler extends ProtocolHandler {
         add(MessageHandler.of(PING_MESSAGE_KEY, m -> pingCountMap.compute(m.senderUuid(), (k, old) -> (old == null ? 0 : old) + 1)));
         add(MessageHandler.of(GET_PING_COUNT_MESSAGE_KEY, PING_COUNT_MESSAGE_KEY, m -> send(PING_COUNT_MESSAGE_KEY, pingCountMap)));
         add(MessageHandler.of(GET_MAGIC_MESSAGE_KEY, MAGIC_MESSAGE_KEY, m -> send(MAGIC_MESSAGE_KEY, Map.of("magicNumber", 4711L))));
+
+        start();
     }
 
     public void ping() {

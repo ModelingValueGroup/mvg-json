@@ -15,30 +15,18 @@
 
 package org.modelingvalue.json.protocol;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.InterruptedIOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.net.Socket;
-import java.rmi.RemoteException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import org.modelingvalue.json.*;
+import org.modelingvalue.json.protocol.Message.*;
 
-import org.modelingvalue.json.FromJson;
-import org.modelingvalue.json.ToJson;
-import org.modelingvalue.json.protocol.Message.MessageImpl;
+import java.io.*;
+import java.net.*;
+import java.rmi.*;
+import java.util.*;
+import java.util.Map.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.function.*;
+import java.util.stream.*;
 
 public class ProtocolHandler {
     public static final boolean TRACE                    = true;
@@ -60,10 +48,12 @@ public class ProtocolHandler {
     private final IncomingMessagesThread            inThread;
 
     public static ProtocolHandler of(String host, int port) throws IOException {
-        Socket       socket = new Socket(host, port);
-        OutputStream out    = socket.getOutputStream();
-        InputStream  in     = socket.getInputStream();
-        return new ProtocolHandler("PH:" + socket.getRemoteSocketAddress().toString(), in, out);
+        Socket          socket          = new Socket(host, port);
+        OutputStream    out             = socket.getOutputStream();
+        InputStream     in              = socket.getInputStream();
+        ProtocolHandler protocolHandler = new ProtocolHandler("PH:" + socket.getRemoteSocketAddress().toString(), in, out);
+        protocolHandler.start();
+        return protocolHandler;
     }
 
     public ProtocolHandler(String name, InputStream in, OutputStream out) {
@@ -74,6 +64,10 @@ public class ProtocolHandler {
         add(MessageHandler.of(PEER_LEAVE_MESSAGE_KEY, this::peerLeave));
         inThread = new IncomingMessagesThread(name, in);
         send_peer_enter();
+    }
+
+    public void start() {
+        inThread.start();
     }
 
     protected void peerLeave(Message m) {
@@ -313,7 +307,6 @@ public class ProtocolHandler {
             super("ProtocolHandler-" + id);
             this.in = new BufferedReader(new InputStreamReader(in));
             setDaemon(true);
-            start();
         }
 
         public void shutdown() throws IOException {
@@ -348,15 +341,18 @@ public class ProtocolHandler {
                         }
                         stop = true;
                     } catch (IOException e) {
-                        System.err.println("IO");
                         e.printStackTrace();
                         send_remote_error(e);
                     }
                 }
             } catch (Throwable e) {
-                System.err.println("TH");
                 e.printStackTrace();
-                send_remote_error(e);
+                try {
+                    send_remote_error(e);
+                } catch (Throwable e2) {
+                    // out of solutions....
+                    e2.printStackTrace();
+                }
             }
             shutdownDone();
         }
