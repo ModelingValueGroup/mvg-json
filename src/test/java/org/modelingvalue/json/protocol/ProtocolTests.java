@@ -19,6 +19,7 @@ import org.junit.jupiter.api.*;
 import org.modelingvalue.syncproxy.*;
 
 import java.io.*;
+import java.net.*;
 import java.time.*;
 import java.util.*;
 
@@ -26,8 +27,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SuppressWarnings("unchecked")
 public class ProtocolTests {
-    public static final int                         TEST_PORT = 25430;
-    private final       TestProtocolHandlerWithPeer tph       = TestProtocolHandlerWithPeer.createPipedWithPeer();
+    public static final int                         TEST_PORT_BASE = 25430;
+    private final       TestProtocolHandlerWithPeer tph            = TestProtocolHandlerWithPeer.createPipedWithPeer();
 
     @AfterEach
     public void afterEach() throws IOException, InterruptedException {
@@ -135,50 +136,64 @@ public class ProtocolTests {
         });
     }
 
-    @Test
+    @RepeatedTest(20)
     public void socketTest() {
         assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
-            Main proxy = new Main(TEST_PORT);
+            Main proxy = startProxy();
+            try {
+                TestProtocolHandler ph1 = TestProtocolHandler.of("localhost", proxy.getPort());
+                TestProtocolHandler ph2 = TestProtocolHandler.of("localhost", proxy.getPort());
+                TestProtocolHandler ph3 = TestProtocolHandler.of("localhost", proxy.getPort());
 
-            TestProtocolHandler ph1 = TestProtocolHandler.of("localhost", TEST_PORT);
-            TestProtocolHandler ph2 = TestProtocolHandler.of("localhost", TEST_PORT);
-            TestProtocolHandler ph3 = TestProtocolHandler.of("localhost", TEST_PORT);
+                Thread.sleep(1000);
+                Map<String, String> m = ph1.getPeerMap();
+                m.keySet().stream().sorted().forEach(k -> System.err.printf("  - %-20s - %s\n", k, m.get(k)));
+                assertEquals(2, m.size());
+                assertEquals(2, m.keySet().stream().distinct().count());
+                assertEquals(2, m.values().stream().distinct().count());
 
-            Thread.sleep(1000);
-            Map<String, String> m = ph1.getPeerMap();
-            m.keySet().stream().sorted().forEach(k -> System.err.printf("  - %-20s - %s\n", k, m.get(k)));
-            assertEquals(2, m.size());
-            assertEquals(2, m.keySet().stream().distinct().count());
-            assertEquals(2, m.values().stream().distinct().count());
+                Thread.sleep(10);
+                ph1.ping();
+                ph2.ping();
+                ph2.ping();
+                ph3.ping();
+                ph3.ping();
+                ph3.ping();
 
-            Thread.sleep(10);
-            ph1.ping();
-            ph2.ping();
-            ph2.ping();
-            ph3.ping();
-            ph3.ping();
-            ph3.ping();
-
-            Thread.sleep(10);
-            assertEquals(2, ph1.getMyPingCount(ph2.getUUID()));
-            assertEquals(3, ph1.getMyPingCount(ph3.getUUID()));
-            assertEquals(1, ph2.getMyPingCount(ph1.getUUID()));
-            assertEquals(3, ph2.getMyPingCount(ph3.getUUID()));
-            assertEquals(1, ph3.getMyPingCount(ph1.getUUID()));
-            assertEquals(2, ph3.getMyPingCount(ph2.getUUID()));
+                Thread.sleep(10);
+                assertEquals(2, ph1.getMyPingCount(ph2.getUUID()));
+                assertEquals(3, ph1.getMyPingCount(ph3.getUUID()));
+                assertEquals(1, ph2.getMyPingCount(ph1.getUUID()));
+                assertEquals(3, ph2.getMyPingCount(ph3.getUUID()));
+                assertEquals(1, ph3.getMyPingCount(ph1.getUUID()));
+                assertEquals(2, ph3.getMyPingCount(ph2.getUUID()));
 
 
-            Thread.sleep(10);
-            assertEquals(4711, ph1.getMagic(ph2.getUUID()));
-            assertEquals(4711, ph1.getMagic(ph3.getUUID()));
+                Thread.sleep(10);
+                assertEquals(4711, ph1.getMagic(ph2.getUUID()));
+                assertEquals(4711, ph1.getMagic(ph3.getUUID()));
 
-            Thread.sleep(100);
-            ph1.throwIfProblems();
-            ph2.throwIfProblems();
-            ph3.throwIfProblems();
+                Thread.sleep(100);
+                ph1.throwIfProblems();
+                ph2.throwIfProblems();
+                ph3.throwIfProblems();
 
-            Thread.sleep(10);
-            proxy.close();
+                Thread.sleep(10);
+            } finally {
+                proxy.close();
+            }
         });
+    }
+
+    private Main startProxy() throws IOException, InterruptedException {
+        for (int p = TEST_PORT_BASE; p < TEST_PORT_BASE + 200; p++) {
+            try {
+                return new Main(p);
+            } catch (BindException e) {
+                Thread.sleep(10);
+            }
+        }
+        fail("Multiple BindException while staring proxy, gving up....");
+        throw new Error();
     }
 }
