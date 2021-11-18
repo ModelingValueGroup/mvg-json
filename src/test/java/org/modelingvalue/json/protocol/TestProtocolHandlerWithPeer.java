@@ -15,18 +15,14 @@
 
 package org.modelingvalue.json.protocol;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
+import java.io.*;
 
 class TestProtocolHandlerWithPeer extends TestProtocolHandler {
     public static TestProtocolHandlerWithPeer createPipedWithPeer() {
         try {
-            PipedInputStream  in      = new PipedInputStream();
-            PipedInputStream  inPeer  = new PipedInputStream();
-            PipedOutputStream out     = new PipedOutputStream(inPeer);
+            PipedInputStream in = new PipedInputStream();
+            PipedInputStream inPeer = new PipedInputStream();
+            PipedOutputStream out = new PipedOutputStream(inPeer);
             PipedOutputStream outPeer = new PipedOutputStream(in);
             return new TestProtocolHandlerWithPeer(in, out, inPeer, outPeer);
         } catch (IOException e) {
@@ -47,6 +43,7 @@ class TestProtocolHandlerWithPeer extends TestProtocolHandler {
         peer.startPinger();
     }
 
+    @Override
     public boolean isShutdown() {
         return super.isShutdown() && peer.isShutdown();
     }
