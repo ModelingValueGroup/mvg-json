@@ -15,15 +15,22 @@
 
 package org.modelingvalue.json.protocol;
 
-import org.junit.jupiter.api.*;
-import org.modelingvalue.syncproxy.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
+import org.modelingvalue.syncproxy.Main;
 
-import java.io.*;
-import java.net.*;
-import java.time.*;
-import java.util.*;
+import java.io.IOException;
+import java.net.BindException;
+import java.time.Duration;
+import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @SuppressWarnings("unchecked")
 public class ProtocolTests {
@@ -131,8 +138,13 @@ public class ProtocolTests {
             assertEquals(0, tph.getMyPingCount());
             tph.startPingerOnPeer();
             Thread.sleep(500);
-            System.err.println("pinger at " + tph.getMyPingCount());
-            assertTrue(40 < tph.getMyPingCount());
+            long myPingCount    = tph.getMyPingCount();
+            long MIN_PING_COUNT = 40;
+            if (myPingCount < MIN_PING_COUNT) {
+                fail("ping count is " + myPingCount + " but it should be above " + MIN_PING_COUNT);
+            } else {
+                System.err.println("ping count is " + myPingCount + " correctly above " + MIN_PING_COUNT);
+            }
         });
     }
 
@@ -152,7 +164,7 @@ public class ProtocolTests {
                 assertEquals(2, m.keySet().stream().distinct().count());
                 assertEquals(2, m.values().stream().distinct().count());
 
-                Thread.sleep(10);
+                Thread.sleep(100);
                 ph1.ping();
                 ph2.ping();
                 ph2.ping();
@@ -160,7 +172,7 @@ public class ProtocolTests {
                 ph3.ping();
                 ph3.ping();
 
-                Thread.sleep(10);
+                Thread.sleep(100);
                 assertEquals(2, ph1.getMyPingCount(ph2.getUUID()));
                 assertEquals(3, ph1.getMyPingCount(ph3.getUUID()));
                 assertEquals(1, ph2.getMyPingCount(ph1.getUUID()));
@@ -169,7 +181,7 @@ public class ProtocolTests {
                 assertEquals(2, ph3.getMyPingCount(ph2.getUUID()));
 
 
-                Thread.sleep(10);
+                Thread.sleep(100);
                 assertEquals(4711, ph1.getMagic(ph2.getUUID()));
                 assertEquals(4711, ph1.getMagic(ph3.getUUID()));
 
@@ -178,7 +190,7 @@ public class ProtocolTests {
                 ph2.throwIfProblems();
                 ph3.throwIfProblems();
 
-                Thread.sleep(10);
+                Thread.sleep(100);
             } finally {
                 proxy.close();
             }
