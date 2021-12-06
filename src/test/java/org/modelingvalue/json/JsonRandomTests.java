@@ -15,7 +15,7 @@
 
 package org.modelingvalue.json;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.RepeatedTest;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.junit.jupiter.api.RepeatedTest;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class JsonRandomTests {
     @RepeatedTest(1)

@@ -15,15 +15,16 @@
 
 package org.modelingvalue.json;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import org.junit.jupiter.api.RepeatedTest;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.junit.jupiter.api.RepeatedTest;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class JsonCustomTests {
     @RepeatedTest(1)
@@ -40,7 +41,7 @@ public class JsonCustomTests {
     }
 
     public static String readData(String name) {
-        try (BufferedReader is = new BufferedReader(new InputStreamReader(JsonCustomTests.class.getResourceAsStream(name)))) {
+        try (BufferedReader is = new BufferedReader(new InputStreamReader(Objects.requireNonNull(JsonCustomTests.class.getResourceAsStream(name))))) {
             return is.lines().collect(Collectors.joining());
         } catch (IOException e) {
             fail();

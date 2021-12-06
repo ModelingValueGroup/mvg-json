@@ -15,16 +15,20 @@
 
 package org.modelingvalue.json.protocol;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 
 class TestProtocolHandlerWithPeer extends TestProtocolHandler {
-    public static TestProtocolHandlerWithPeer createPipedWithPeer() {
+    public static TestProtocolHandlerWithPeer createPipedWithPeer(char separator) {
         try {
-            PipedInputStream in = new PipedInputStream();
-            PipedInputStream inPeer = new PipedInputStream();
-            PipedOutputStream out = new PipedOutputStream(inPeer);
+            PipedInputStream  in      = new PipedInputStream();
+            PipedInputStream  inPeer  = new PipedInputStream();
+            PipedOutputStream out     = new PipedOutputStream(inPeer);
             PipedOutputStream outPeer = new PipedOutputStream(in);
-            return new TestProtocolHandlerWithPeer(in, out, inPeer, outPeer);
+            return new TestProtocolHandlerWithPeer(in, out, inPeer, outPeer, separator);
         } catch (IOException e) {
             throw new Error("problem during creation", e);
         }
@@ -32,9 +36,9 @@ class TestProtocolHandlerWithPeer extends TestProtocolHandler {
 
     public final TestProtocolHandler peer;
 
-    public TestProtocolHandlerWithPeer(InputStream in, OutputStream out, InputStream inPeer, OutputStream outPeer) {
-        super("test", in, out);
-        peer = new TestProtocolHandler("peer", inPeer, outPeer);
+    public TestProtocolHandlerWithPeer(InputStream in, OutputStream out, InputStream inPeer, OutputStream outPeer, char separator) {
+        super("test", in, out, separator);
+        peer = new TestProtocolHandler("peer", inPeer, outPeer, separator);
         waitForSinglePeer();
         peer.waitForSinglePeer();
     }

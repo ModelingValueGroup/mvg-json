@@ -15,26 +15,35 @@
 
 package org.modelingvalue.json.protocol;
 
-import org.modelingvalue.json.*;
-import org.modelingvalue.json.protocol.Message.*;
+import org.modelingvalue.json.FromJson;
+import org.modelingvalue.json.ToJson;
+import org.modelingvalue.json.protocol.Message.MessageImpl;
 
-import java.io.*;
-import java.net.*;
-import java.rmi.*;
-import java.util.*;
-import java.util.Map.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
-import java.util.function.*;
-import java.util.stream.*;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InterruptedIOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.net.Socket;
+import java.rmi.RemoteException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ProtocolHandler {
-    public static final boolean TRACE                    = true;
+    public static final boolean TRACE                    = false;
     public static final String  REMOTE_ERROR_MESSAGE_KEY = "$remote_error";
     public static final String  PEER_ENTER_MESSAGE_KEY   = "$peer_enter";
     public static final String  PEER_LEAVE_MESSAGE_KEY   = "$peer_leave";
     public static final char    PROTOCOL_SEPARATOR       = ':';
-    public static final char    PROTOCOL_TERMINATOR      = '\n';
 
     private final String                            uuid                      = UUID.randomUUID().toString();
     private final Map<String, MessageHandler>       handlerMap                = new HashMap<>();
@@ -45,20 +54,22 @@ public class ProtocolHandler {
     private final Map<String, Map<String, Message>> lastMessagesMap           = new HashMap<>();
     private final String                            name;
     private final BufferedWriter                    out;
+    private final char                              messageSeparator;
     private final IncomingMessagesThread            inThread;
 
-    public static ProtocolHandler of(String host, int port) throws IOException {
+    public static ProtocolHandler of(String host, int port, char messageSeparator) throws IOException {
         Socket          socket          = new Socket(host, port);
         OutputStream    out             = socket.getOutputStream();
         InputStream     in              = socket.getInputStream();
-        ProtocolHandler protocolHandler = new ProtocolHandler("PH:" + socket.getRemoteSocketAddress().toString(), in, out);
+        ProtocolHandler protocolHandler = new ProtocolHandler("PH:" + socket.getRemoteSocketAddress().toString(), in, out, messageSeparator);
         protocolHandler.start();
         return protocolHandler;
     }
 
-    public ProtocolHandler(String name, InputStream in, OutputStream out) {
-        this.name = name;
-        this.out  = new BufferedWriter(new OutputStreamWriter(out));
+    public ProtocolHandler(String name, InputStream in, OutputStream out, char messageSeparator) {
+        this.name             = name;
+        this.out              = new BufferedWriter(new OutputStreamWriter(out));
+        this.messageSeparator = messageSeparator;
         add(MessageHandler.of(REMOTE_ERROR_MESSAGE_KEY, m -> addProblem(new RemoteException(((Map<?, ?>) m.json()).get("message").toString()))));
         add(MessageHandler.of(PEER_ENTER_MESSAGE_KEY, this::peerEnter));
         add(MessageHandler.of(PEER_LEAVE_MESSAGE_KEY, this::peerLeave));
@@ -180,12 +191,20 @@ public class ProtocolHandler {
     public void send(String keyword, Object payload) {
         synchronized (out) {
             try {
-                String msg = keyword + PROTOCOL_SEPARATOR
-                             + uuid + PROTOCOL_SEPARATOR
-                             + nextSendMessageNumber.getAndIncrement() + PROTOCOL_SEPARATOR
-                             + ToJson.toJson(payload) + PROTOCOL_TERMINATOR;
+                String msg = keyword
+                             + PROTOCOL_SEPARATOR
+                             + uuid
+                             + PROTOCOL_SEPARATOR
+                             + nextSendMessageNumber.getAndIncrement()
+                             + PROTOCOL_SEPARATOR
+                             + ToJson.toJson(payload)
+                             + messageSeparator;
                 if (TRACE) {
-                    System.err.printf(">>>%-50s>>>    SEND: %s", Thread.currentThread().getName(), String.format("%" + (20 - msg.indexOf(PROTOCOL_SEPARATOR)) + "s%s", "", msg));
+                    String msgAligned = String.format("%" + (20 - msg.indexOf(PROTOCOL_SEPARATOR)) + "s%s", "", msg);
+                    System.err.printf(">>>%-50s>>>    SEND: %s%s", Thread.currentThread().getName(), msgAligned, msgAligned.endsWith("\n") ? "" : "\n");
+                }
+                if (msg.indexOf(messageSeparator) != msg.length() - 1) {
+                    throw new Error("ProtocolHandler can not send messages with an embedded message separator '" + messageSeparator + "': " + msg);
                 }
                 out.write(msg);
                 out.flush();
@@ -300,12 +319,12 @@ public class ProtocolHandler {
     }
 
     private class IncomingMessagesThread extends Thread {
-        private final BufferedReader in;
-        private       boolean        stop;
+        private final InputStream in;
+        private       boolean     stop;
 
         public IncomingMessagesThread(String id, InputStream in) {
             super("ProtocolHandler-" + id);
-            this.in = new BufferedReader(new InputStreamReader(in));
+            this.in = in;
             setDaemon(true);
         }
 
@@ -322,7 +341,7 @@ public class ProtocolHandler {
             try {
                 while (!stop) {
                     try {
-                        String line = in.readLine();
+                        String line = readLine();
                         if (TRACE) {
                             System.err.printf(">>>%-50s>>>    READ: %s\n", getName(), line == null ? "<EOF>" : String.format("%" + (20 - line.indexOf(PROTOCOL_SEPARATOR)) + "s%s", "", line));
                         }
@@ -355,6 +374,18 @@ public class ProtocolHandler {
                 }
             }
             shutdownDone();
+        }
+
+        private String readLine() throws IOException {
+            StringBuilder b = new StringBuilder();
+            int           c;
+            while ((c = in.read()) != messageSeparator && c != -1) {
+                b.append((char) c);
+            }
+            if (c == -1 && b.length() == 0) {
+                return null;
+            }
+            return b.toString();
         }
     }
 }

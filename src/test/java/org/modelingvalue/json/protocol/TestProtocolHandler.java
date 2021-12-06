@@ -29,18 +29,18 @@ public class TestProtocolHandler extends ProtocolHandler {
     public static final String GET_MAGIC_MESSAGE_KEY      = "getMagic";
     public static final String MAGIC_MESSAGE_KEY          = "magic";
 
-    public static TestProtocolHandler of(String host, int port) throws IOException {
+    public static TestProtocolHandler of(String host, int port, char messageSeparator) throws IOException {
         Socket       socket = new Socket(host, port);
         OutputStream out    = socket.getOutputStream();
         InputStream  in     = socket.getInputStream();
-        return new TestProtocolHandler("TPH:" + socket.getLocalPort() + "=>" + host + ":" + port, in, out);
+        return new TestProtocolHandler("TPH:" + socket.getLocalPort() + "=>" + host + ":" + port, in, out, messageSeparator);
     }
 
     private final Map<String, Long> pingCountMap = new HashMap<>();
     private       Thread            pinger;
 
-    public TestProtocolHandler(String id, InputStream in, OutputStream out) {
-        super(id, in, out);
+    public TestProtocolHandler(String id, InputStream in, OutputStream out, char messageSeparator) {
+        super(id, in, out, messageSeparator);
 
         add(MessageHandler.of(PING_MESSAGE_KEY, m -> pingCountMap.compute(m.senderUuid(), (k, old) -> (old == null ? 0 : old) + 1)));
         add(MessageHandler.of(GET_PING_COUNT_MESSAGE_KEY, PING_COUNT_MESSAGE_KEY, m -> send(PING_COUNT_MESSAGE_KEY, pingCountMap)));

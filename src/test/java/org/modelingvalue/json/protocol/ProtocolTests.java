@@ -17,28 +17,33 @@ package org.modelingvalue.json.protocol;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.modelingvalue.syncproxy.Main;
 
 import java.io.IOException;
-import java.net.BindException;
 import java.time.Duration;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @SuppressWarnings("unchecked")
 public class ProtocolTests {
-    public static final int                         TEST_PORT_BASE = 25430;
-    private final       TestProtocolHandlerWithPeer tph            = TestProtocolHandlerWithPeer.createPipedWithPeer();
+    private TestProtocolHandlerWithPeer tph;
+
+    @BeforeEach
+    public void beforeEach() {
+        assertNull(tph);
+        tph = TestProtocolHandlerWithPeer.createPipedWithPeer('\n');
+    }
 
     @AfterEach
     public void afterEach() throws IOException, InterruptedException {
+        assertNotNull(tph);
         if (!tph.isShutdown()) {
             tph.shutdown();
             long t0 = System.currentTimeMillis();
@@ -48,6 +53,7 @@ public class ProtocolTests {
             }
             assertTrue(tph.isShutdown());
         }
+        tph = null;
     }
 
     @Test
@@ -146,66 +152,5 @@ public class ProtocolTests {
                 System.err.println("ping count is " + myPingCount + " correctly above " + MIN_PING_COUNT);
             }
         });
-    }
-
-    @RepeatedTest(20)
-    public void socketTest() {
-        assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
-            Main proxy = startProxy();
-            try {
-                TestProtocolHandler ph1 = TestProtocolHandler.of("localhost", proxy.getPort());
-                TestProtocolHandler ph2 = TestProtocolHandler.of("localhost", proxy.getPort());
-                TestProtocolHandler ph3 = TestProtocolHandler.of("localhost", proxy.getPort());
-
-                Thread.sleep(1000);
-                Map<String, String> m = ph1.getPeerMap();
-                m.keySet().stream().sorted().forEach(k -> System.err.printf("  - %-20s - %s\n", k, m.get(k)));
-                assertEquals(2, m.size());
-                assertEquals(2, m.keySet().stream().distinct().count());
-                assertEquals(2, m.values().stream().distinct().count());
-
-                Thread.sleep(100);
-                ph1.ping();
-                ph2.ping();
-                ph2.ping();
-                ph3.ping();
-                ph3.ping();
-                ph3.ping();
-
-                Thread.sleep(100);
-                assertEquals(2, ph1.getMyPingCount(ph2.getUUID()));
-                assertEquals(3, ph1.getMyPingCount(ph3.getUUID()));
-                assertEquals(1, ph2.getMyPingCount(ph1.getUUID()));
-                assertEquals(3, ph2.getMyPingCount(ph3.getUUID()));
-                assertEquals(1, ph3.getMyPingCount(ph1.getUUID()));
-                assertEquals(2, ph3.getMyPingCount(ph2.getUUID()));
-
-
-                Thread.sleep(100);
-                assertEquals(4711, ph1.getMagic(ph2.getUUID()));
-                assertEquals(4711, ph1.getMagic(ph3.getUUID()));
-
-                Thread.sleep(100);
-                ph1.throwIfProblems();
-                ph2.throwIfProblems();
-                ph3.throwIfProblems();
-
-                Thread.sleep(100);
-            } finally {
-                proxy.close();
-            }
-        });
-    }
-
-    private Main startProxy() throws IOException, InterruptedException {
-        for (int p = TEST_PORT_BASE; p < TEST_PORT_BASE + 200; p++) {
-            try {
-                return new Main(p);
-            } catch (BindException e) {
-                Thread.sleep(10);
-            }
-        }
-        fail("Multiple BindException while staring proxy, gving up....");
-        throw new Error();
     }
 }

@@ -15,11 +15,8 @@
 
 package org.modelingvalue.json;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.modelingvalue.json.Json.fromJson;
-import static org.modelingvalue.json.Json.toJson;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 import java.util.AbstractMap.SimpleEntry;
@@ -31,8 +28,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.modelingvalue.json.Json.fromJson;
+import static org.modelingvalue.json.Json.toJson;
 
 public class JsonTests {
     @RepeatedTest(1)
