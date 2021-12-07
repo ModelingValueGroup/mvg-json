@@ -264,21 +264,6 @@ public class ProtocolHandler {
         return h.awaitAnswer();
     }
 
-    public void waitForSinglePeer() {
-        waitForMultiPeer(1);
-    }
-
-    public void waitForMultiPeer(int n) {
-        try {
-            while (peerMap.size() != n) {
-                //noinspection BusyWait
-                Thread.sleep(1);
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
     private class AnswerMessageHandler implements MessageHandler {
         private final String                                  answerKeyword;
         private final CompletableFuture<Map<String, Message>> syncer    = new CompletableFuture<>();

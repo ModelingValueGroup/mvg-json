@@ -18,11 +18,12 @@ package org.modelingvalue.json.protocol;
 import org.junit.jupiter.api.RepeatedTest;
 import org.modelingvalue.syncproxy.Main;
 
-import java.time.Duration;
 import java.util.Map;
 
+import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.modelingvalue.json.TestUtil.assertEventually;
 
 public class ProtocolProxyTests {
     private static final char[] SEPARATORS = {'@', '|', '\n', '\0', '^'};
@@ -38,7 +39,7 @@ public class ProtocolProxyTests {
 
     @RepeatedTest(20)
     public void socketTest() {
-        assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
+        assertTimeoutPreemptively(ofSeconds(10), () -> {
             char sep   = nextSeparator();
             Main proxy = new Main(0, sep, false);
             try {
@@ -46,46 +47,43 @@ public class ProtocolProxyTests {
                 TestProtocolHandler ph2 = TestProtocolHandler.of("localhost", proxy.getPort(), sep);
                 TestProtocolHandler ph3 = TestProtocolHandler.of("localhost", proxy.getPort(), sep);
 
-                int initialDelay = 200;
-                int delay        = 20;
+                assertEventually("fill peer-map", () -> {
+                    Map<String, String> m = ph1.getPeerMap();
+                    assertEquals(2, m.size());
+                    assertEquals(2, m.keySet().stream().distinct().count());
+                    assertEquals(2, m.values().stream().distinct().count());
+                });
 
-                Thread.sleep(initialDelay);
-                Map<String, String> m = ph1.getPeerMap();
-                //m.keySet().stream().sorted().forEach(k -> System.err.printf("  - %-20s - %s\n", k, m.get(k)));
-                assertEquals(2, m.size());
-                assertEquals(2, m.keySet().stream().distinct().count());
-                assertEquals(2, m.values().stream().distinct().count());
-
-                Thread.sleep(delay);
+                Thread.sleep(5);
                 ph1.ping();
                 ph2.ping();
                 ph2.ping();
+
+                Thread.sleep(5);
                 ph3.ping();
                 ph3.ping();
                 ph3.ping();
 
-                Thread.sleep(delay);
-                assertEquals(2, ph1.getMyPingCount(ph2.getUUID()));
-                assertEquals(3, ph1.getMyPingCount(ph3.getUUID()));
-                assertEquals(1, ph2.getMyPingCount(ph1.getUUID()));
-                assertEquals(3, ph2.getMyPingCount(ph3.getUUID()));
-                assertEquals(1, ph3.getMyPingCount(ph1.getUUID()));
-                assertEquals(2, ph3.getMyPingCount(ph2.getUUID()));
+                assertEventually("pings have arrived", () -> {
+                    assertEquals(2, ph1.getMyPingCount(ph2.getUUID()));
+                    assertEquals(3, ph1.getMyPingCount(ph3.getUUID()));
+                    assertEquals(1, ph2.getMyPingCount(ph1.getUUID()));
+                    assertEquals(3, ph2.getMyPingCount(ph3.getUUID()));
+                    assertEquals(1, ph3.getMyPingCount(ph1.getUUID()));
+                    assertEquals(2, ph3.getMyPingCount(ph2.getUUID()));
+                    assertEquals(4711, ph1.getMagic(ph2.getUUID()));
+                    assertEquals(4711, ph1.getMagic(ph3.getUUID()));
+                });
 
-
-                Thread.sleep(delay);
-                assertEquals(4711, ph1.getMagic(ph2.getUUID()));
-                assertEquals(4711, ph1.getMagic(ph3.getUUID()));
-
-                Thread.sleep(delay);
-                ph1.throwIfProblems();
-                ph2.throwIfProblems();
-                ph3.throwIfProblems();
-
-                Thread.sleep(delay);
+                assertEventually("let problems surface", () -> {
+                    ph1.throwIfProblems();
+                    ph2.throwIfProblems();
+                    ph3.throwIfProblems();
+                });
             } finally {
                 proxy.close();
             }
         });
     }
+
 }

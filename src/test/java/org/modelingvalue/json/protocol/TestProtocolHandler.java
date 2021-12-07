@@ -65,7 +65,7 @@ public class TestProtocolHandler extends ProtocolHandler {
         pingCountMap.remove(m.senderUuid());
     }
 
-    public void startPinger() {
+    public void start100Pinger() {
         pinger = new Thread("pinger") {
             @Override
             public void run() {

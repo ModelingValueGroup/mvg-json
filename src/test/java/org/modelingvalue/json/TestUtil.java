@@ -13,45 +13,57 @@
 //     Arjan Kok, Carel Bast                                                                                           ~
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-package org.modelingvalue.json.protocol;
+package org.modelingvalue.json;
 
-import org.modelingvalue.json.TestUtil;
+import org.junit.jupiter.api.function.Executable;
+import org.modelingvalue.json.protocol.ProtocolHandler;
+import org.opentest4j.AssertionFailedError;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
+import java.time.Duration;
 
-class TestProtocolHandlerWithPeer extends TestProtocolHandler {
-    public static TestProtocolHandlerWithPeer createPipedWithPeer(char separator) {
+import static java.time.Duration.ofMillis;
+import static java.time.Duration.ofSeconds;
+
+@SuppressWarnings("BusyWait")
+public class TestUtil {
+    public static void assertEventually(String name, Executable executable) throws Throwable {
+        assertEventually(name, ofSeconds(5), ofMillis(50), executable);
+    }
+
+    public static void assertEventually(String name, Duration max, Duration keep, Executable executable) throws Throwable {
+        int  n  = 0;
+        long t0 = System.currentTimeMillis();
+        do {
+            try {
+                executable.execute();
+                break;
+            } catch (AssertionFailedError failure) {
+                n++;
+                Thread.sleep(1);
+            }
+        } while (System.currentTimeMillis() - t0 < max.toMillis());
+
+        System.err.printf("assertEventually: it took %5d ms and %4d failures for: %s\n", System.currentTimeMillis() - t0, n, name);
+
+        long t1 = System.currentTimeMillis();
+        do {
+            executable.execute();
+            Thread.sleep(1);
+        } while (System.currentTimeMillis() - t1 < keep.toMillis());
+    }
+
+    public static void waitForSinglePeer(ProtocolHandler ph) {
+        waitForMultiPeer(1, ph);
+    }
+
+    public static void waitForMultiPeer(int n, ProtocolHandler ph) {
         try {
-            PipedInputStream  in      = new PipedInputStream();
-            PipedInputStream  inPeer  = new PipedInputStream();
-            PipedOutputStream out     = new PipedOutputStream(inPeer);
-            PipedOutputStream outPeer = new PipedOutputStream(in);
-            return new TestProtocolHandlerWithPeer(in, out, inPeer, outPeer, separator);
-        } catch (IOException e) {
-            throw new Error("problem during creation", e);
+            while (ph.getPeerMap().size() != n) {
+                //noinspection BusyWait
+                Thread.sleep(1);
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
-
-    public final TestProtocolHandler peer;
-
-    public TestProtocolHandlerWithPeer(InputStream in, OutputStream out, InputStream inPeer, OutputStream outPeer, char separator) {
-        super("test", in, out, separator);
-        peer = new TestProtocolHandler("peer", inPeer, outPeer, separator);
-        TestUtil.waitForSinglePeer(this);
-        TestUtil.waitForSinglePeer(peer);
-    }
-
-    public void start100PingerOnPeer() {
-        peer.start100Pinger();
-    }
-
-    @Override
-    public boolean isShutdown() {
-        return super.isShutdown() && peer.isShutdown();
-    }
-
 }

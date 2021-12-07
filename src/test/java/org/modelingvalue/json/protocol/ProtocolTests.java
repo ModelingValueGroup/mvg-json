@@ -16,11 +16,10 @@
 package org.modelingvalue.json.protocol;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.modelingvalue.json.TestUtil;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 
@@ -29,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 @SuppressWarnings("unchecked")
 public class ProtocolTests {
@@ -42,16 +40,11 @@ public class ProtocolTests {
     }
 
     @AfterEach
-    public void afterEach() throws IOException, InterruptedException {
+    public void afterEach() throws Throwable {
         assertNotNull(tph);
         if (!tph.isShutdown()) {
             tph.shutdown();
-            long t0 = System.currentTimeMillis();
-            while (!tph.isShutdown() && System.currentTimeMillis() < t0 + 30_000) {
-                //noinspection BusyWait
-                Thread.sleep(1);
-            }
-            assertTrue(tph.isShutdown());
+            TestUtil.assertEventually("correctly shutdown after test", () -> assertTrue(tph.isShutdown()));
         }
         tph = null;
     }
@@ -107,11 +100,12 @@ public class ProtocolTests {
     public void unknownTest() {
         assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
             tph.send("unknown", "@@@");
-            Thread.sleep(50);
-            Message unknown = tph.peer.getLastMessageSingle("unknown");
-            assertNotNull(unknown);
-            assertEquals(unknown.keyword(), "unknown");
-            assertEquals(unknown.json(), "@@@");
+            TestUtil.assertEventually("unknown is handled", () -> {
+                Message unknown = tph.peer.getLastMessageSingle("unknown");
+                assertNotNull(unknown);
+                assertEquals(unknown.keyword(), "unknown");
+                assertEquals(unknown.json(), "@@@");
+            });
         });
     }
 
@@ -131,26 +125,24 @@ public class ProtocolTests {
             tph.ping();
             tph.ping();
             Thread.sleep(50);
+
             tph.shutdown();
-            Thread.sleep(50);
-            Assertions.assertTrue(tph.isShutdown());
+            TestUtil.assertEventually("shutdown done", () -> assertTrue(tph.isShutdown()));
         });
     }
 
     @Test
     public void pingerTest() {
         assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
-            tph.waitForSinglePeer();
+            TestUtil.waitForSinglePeer(tph);
             assertEquals(0, tph.getMyPingCount());
-            tph.startPingerOnPeer();
-            Thread.sleep(500);
-            long myPingCount    = tph.getMyPingCount();
-            long MIN_PING_COUNT = 40;
-            if (myPingCount < MIN_PING_COUNT) {
-                fail("ping count is " + myPingCount + " but it should be above " + MIN_PING_COUNT);
-            } else {
-                System.err.println("ping count is " + myPingCount + " correctly above " + MIN_PING_COUNT);
-            }
+            tph.start100PingerOnPeer();
+
+            int  target = 25;
+            long t0     = System.currentTimeMillis();
+            TestUtil.assertEventually("ping count at or above " + target, () -> assertTrue(target <= tph.getMyPingCount(), "ping count did not get over " + target + " in time"));
+            long dt = System.currentTimeMillis() - t0;
+            System.err.println("info: it took " + dt + " ms to get to a ping count of " + target);
         });
     }
 }
