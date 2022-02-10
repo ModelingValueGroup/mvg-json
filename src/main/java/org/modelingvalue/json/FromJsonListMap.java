@@ -15,18 +15,39 @@
 
 package org.modelingvalue.json;
 
-import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class Json {
-    public static String toJson(Object o) {
-        return ToJson.toJson(o);
-    }
-
+public class FromJsonListMap extends FromJsonBase<Iterable<Object>, Map<String, Object>> {
     public static Object fromJson(String s) {
-        return FromJsonListMap.fromJson(s);
+        return new FromJsonListMap(s).parse();
     }
 
-    public static <T> T fromJson(Type t, String s) {
-        return FromJsonGeneric.fromJson(t, s);
+    protected FromJsonListMap(String input) {
+        super(input);
+    }
+
+    @Override
+    protected HashMap<String, Object> makeMap() {
+        return new HashMap<>();
+    }
+
+    @Override
+    protected Iterable<Object> makeArray() {
+        return new ArrayList<>();
+    }
+
+    @Override
+    protected Map<String, Object> makeMapEntry(Map<String, Object> m, Object key, Object value) {
+        m.put(key == null ? null : key.toString(), value);
+        return m;
+    }
+
+    @Override
+    protected Iterable<Object> makeArrayEntry(Iterable<Object> l, Object o) {
+        ((List<Object>) l).add(o);
+        return l;
     }
 }

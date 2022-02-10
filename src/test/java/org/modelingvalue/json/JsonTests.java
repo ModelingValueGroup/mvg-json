@@ -27,10 +27,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.modelingvalue.json.Json.fromJson;
 import static org.modelingvalue.json.Json.toJson;
 
@@ -241,9 +245,119 @@ public class JsonTests {
         assertEquals(Map.of("a", 1L, "b", 2L), fromJson("{\"a\":1,\"b\":2}"));
     }
 
+    @Test
+    public void objectFromJson() {
+        AAA o = fromJson(AAA.class, "{" +
+                                    "\"b-o\":true," +
+                                    "\"b_y+t#e\":44," +
+                                    "\"sh\":10000," +
+                                    "\"in\":123456789," +
+                                    "\"lo\":1234567890123456789," +
+                                    "\"db\":3.1415," +
+                                    "\"fl\":4711.2," +
+                                    "\"st\":\"burp••\"," +
+                                    "\"ch\":44," +
+                                    "\"ob1\":{\"id\":33,\"sub\":{\"id\":88.0,\"sub\":{\"id\":99}}}," +
+                                    "\"ob2\":{\"id\":\"44\"}," +
+                                    "\"li1\":[1,2,3]," +
+                                    "\"li2\":[{\"id\":1},{\"id\":2,\"sub\":{\"id\":21}},{\"id\":3,\"sub\":{\"id\":31}}]," +
+                                    "\"li3\":[[{\"id\":1}],[{\"id\":2}]]," +
+                                    "\"ma\":{\"yes\":true,\"sure\":true,\"nope\":false}," +
+                                    "\"ss\":[1,3,1,3]" +
+                                    "}"
+        );
+        assertNotNull(o);
+        assertTrue(o.bo);
+        assertEquals(44, o.by);
+        assertEquals(10000, o.sh);
+        assertEquals(123456789, o.in);
+        assertEquals(1234567890123456789L, o.lo);
+        assertEquals("" + 3.1415D, "" + o.db);
+        assertEquals("" + 4711.2, "" + o.fl);
+        assertEquals("burp••", o.st);
+        assertEquals((char) 44, o.ch);
+        assertEquals(33, o.ob1.id);
+        assertEquals(88, o.ob1.sub.id);
+        assertEquals(99, o.ob1.sub.sub.id);
+        assertEquals(44, o.ob2.id);
+        assertIterableEquals(List.of(1, 2, 3), o.li1);
+        assertEquals(new SUB(1, null), o.li2.get(0));
+        assertEquals(new SUB(2, new SUB(21, null)), o.li2.get(1));
+        assertEquals(new SUB(3, new SUB(31, null)), o.li2.get(2));
+        assertEquals(Set.of((short) 1, (short) 3), o.ss);
+        assertEquals(3, o.ma.size());
+        assertEquals(true, o.ma.get("yes"));
+        assertEquals(true, o.ma.get("sure"));
+        assertEquals(false, o.ma.get("nope"));
+    }
+
     //############################################################################################################################################################
     //############################################################################################################################################################
     //############################################################################################################################################################
+    public static class SUB {
+        int id;
+        SUB sub;
+
+        public SUB() {
+        }
+
+        public SUB(int id, SUB sub) {
+            this.id  = id;
+            this.sub = sub;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            SUB sub1 = (SUB) o;
+
+            if (id != sub1.id) {
+                return false;
+            }
+            return sub != null ? sub.equals(sub1.sub) : sub1.sub == null;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = id;
+            result = 31 * result + (sub != null ? sub.hashCode() : 0);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "SUB[" + id + (sub == null ? "" : ", " + sub) + "]";
+        }
+    }
+
+    public static class AAA {
+        @JsonName("b-o")
+        boolean bo;
+        @JsonName("b_y+t#e")
+        byte    by;
+        short  sh;
+        int    in;
+        long   lo;
+        double db;
+        float  fl;
+        String st;
+        char   ch;
+        SUB    ob1;
+        SUB    ob2;
+
+        List<Integer>        li1;
+        List<SUB>            li2;
+        List<Set<SUB>>       li3;
+        Set<Short>           ss;
+        Map<String, Boolean> ma;
+    }
+
     public List<Serializable> getTestObject1() {
         return new ArrayList<>(
                 Arrays.asList(

@@ -15,7 +15,7 @@
 
 package org.modelingvalue.json;
 
-import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class JsonCustomTests {
-    @RepeatedTest(1)
+    @Test
     public void counters() {
         assertEquals("1,0,0,0,0,0,0", CountingTesterFromJson.fromJson("[]"));
         assertEquals("3,2,3,3,4,0,0", CountingTesterFromJson.fromJson("[[],[],{\"a\":{\"b\":\"aa\"},\"c\":21}]"));
@@ -59,6 +59,7 @@ public class JsonCustomTests {
         private int numCurliesString;
 
         public static Object fromJson(String s) {
+            System.err.println("++++ FROM " + s);
             return new CountingTesterFromJson(s).parse();
         }
 
@@ -68,18 +69,21 @@ public class JsonCustomTests {
 
         @Override
         protected Void makeMap() {
+            System.err.printf(">> %-14s: %3d/%3d  -  %s\n", "makeMap", getLevel(), getIndex(), getPath());
             numMaps++;
             return null;
         }
 
         @Override
         protected Void makeArray() {
+            System.err.printf(">> %-14s: %3d/%3d  -  %s\n", "makeArray", getLevel(), getIndex(), getPath());
             numArrays++;
             return null;
         }
 
         @Override
-        protected Void makeMapEntry(Void m, String key, Object value) {
+        protected Void makeMapEntry(Void m, Object key, Object value) {
+            System.err.printf(">> %-14s: %3d/%3d  -  %s  k=%s v=%s\n", "makeMapEntry", getLevel(), getIndex(), getPath(), key, value);
             numMapEntries++;
             countString(key);
             countString(value);
@@ -88,6 +92,7 @@ public class JsonCustomTests {
 
         @Override
         protected Void makeArrayEntry(Void l, Object o) {
+            System.err.printf(">> %-14s: %3d/%3d  -  %s  o=%s\n", "makeArrayEntry", getLevel(), getIndex(), getPath(), o);
             numArrayEntries++;
             countString(o);
             return null;

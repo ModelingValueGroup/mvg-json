@@ -15,7 +15,7 @@
 
 package org.modelingvalue.json.protocol;
 
-import org.modelingvalue.json.FromJson;
+import org.modelingvalue.json.FromJsonListMap;
 import org.modelingvalue.json.ToJson;
 import org.modelingvalue.json.protocol.Message.MessageImpl;
 
@@ -336,7 +336,7 @@ public class ProtocolHandler {
                             if (split.length != 4) {
                                 send_remote_error(new IOException("non protocol line: " + line));
                             } else {
-                                received(new MessageImpl(split[0], split[1], Long.parseLong(split[2]), nextReceivedMessageNumber.getAndIncrement(), FromJson.fromJson(split[3])));
+                                received(new MessageImpl(split[0], split[1], Long.parseLong(split[2]), nextReceivedMessageNumber.getAndIncrement(), FromJsonListMap.fromJson(split[3])));
                             }
                         }
                     } catch (InterruptedIOException e) {
