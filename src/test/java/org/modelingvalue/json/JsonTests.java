@@ -248,6 +248,9 @@ public class JsonTests {
     @Test
     public void objectFromJson() {
         AAA o = fromJson(AAA.class, "{" +
+                                    "\"num\":300," +
+                                    "\"bool\":true," +
+                                    "\"string\":\"burpie\"," +
                                     "\"b-o\":true," +
                                     "\"b_y+t#e\":44," +
                                     "\"sh\":10000," +
@@ -268,6 +271,12 @@ public class JsonTests {
         );
         assertNotNull(o);
         assertTrue(o.bo);
+        assertNotNull(o.num);
+        assertEquals(300, o.num.num);
+        assertNotNull(o.bool);
+        assertTrue(o.bool.bool);
+        assertNotNull(o.string);
+        assertEquals("burpie", o.string.string);
         assertEquals(44, o.by);
         assertEquals(10000, o.sh);
         assertEquals(123456789, o.in);
@@ -336,7 +345,34 @@ public class JsonTests {
         }
     }
 
+    public static class NUM {
+        int num;
+
+        public NUM(int num) {
+            this.num = num;
+        }
+    }
+
+    public static class BOOL {
+        boolean bool;
+
+        public BOOL(boolean bool) {
+            this.bool = bool;
+        }
+    }
+
+    public static class STRING {
+        String string;
+
+        public STRING(String string) {
+            this.string = string;
+        }
+    }
+
     public static class AAA {
+        NUM    num;
+        BOOL   bool;
+        STRING string;
         @JsonName("b-o")
         boolean bo;
         @JsonName("b_y+t#e")

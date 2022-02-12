@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class GenericsUtil {
@@ -619,14 +620,45 @@ public class GenericsUtil {
                         (o, key, v) -> setField(f, o, v)
                 );
             }
+            SubSetter longFieldSetter = null;
+            longFieldSetter = makeConstructorSubSetter(longFieldSetter, f, long.class, x -> (long) x);
+            longFieldSetter = makeConstructorSubSetter(longFieldSetter, f, int.class, x -> (int) (long) x);
+            longFieldSetter = makeConstructorSubSetter(longFieldSetter, f, short.class, x -> (short) (long) x);
+            longFieldSetter = makeConstructorSubSetter(longFieldSetter, f, byte.class, x -> (byte) (long) x);
+            longFieldSetter = makeConstructorSubSetter(longFieldSetter, f, char.class, x -> (char) (long) x);
+
+            SubSetter doubleFieldSetter = null;
+            doubleFieldSetter = makeConstructorSubSetter(doubleFieldSetter, f, double.class, x -> (double) x);
+            doubleFieldSetter = makeConstructorSubSetter(doubleFieldSetter, f, float.class, x -> (float) (double) x);
+
+            SubSetter booleanFieldSetter = null;
+            booleanFieldSetter = makeConstructorSubSetter(booleanFieldSetter, f, boolean.class, x -> (boolean) x);
+
+            SubSetter stringFieldSetter = null;
+            stringFieldSetter = makeConstructorSubSetter(stringFieldSetter, f, String.class, x -> (String) x);
+
             return new CoercingFieldSetter(
                     (o, key, v) -> setField(f, o, (Object) null),
-                    null,
-                    null,
-                    null,
-                    null,
+                    longFieldSetter,
+                    doubleFieldSetter,
+                    booleanFieldSetter,
+                    stringFieldSetter,
                     (o, key, v) -> setField(f, o, v)
             );
+        }
+
+        private static <PRIM> SubSetter makeConstructorSubSetter(SubSetter setter, Field f, Class<PRIM> primClass, Function<Object, PRIM> convert) {
+            return setter != null ? setter : Arrays.stream(f.getType().getConstructors())
+                    .filter(c -> c.getParameterCount() == 1 && (c.getParameterTypes()[0] == primClass || c.getParameterTypes()[0] == box(primClass)))
+                    .findFirst()
+                    .map(c -> (SubSetter) (o, key, v) -> {
+                        try {
+                            setField(f, o, c.newInstance(convert.apply(v)));
+                        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                            throw new IllegalArgumentException("can not make new instance of " + c.getDeclaringClass().getSimpleName() + " with arg (" + v + ")", e);
+                        }
+                    })
+                    .orElse(null);
         }
 
         public CoercingFieldSetter(SubSetter nullFieldSetter, SubSetter longFieldSetter, SubSetter doubleFieldSetter, SubSetter boolFieldSetter, SubSetter stringFieldSetter, SubSetter objectFieldSetter) {
@@ -640,25 +672,29 @@ public class GenericsUtil {
 
         @Override
         public void set(Object o, Object key, Object v) {
-            Class<?> valueClass = v == null ? null : v.getClass();
-            if (valueClass == null) {
-                notNull(nullFieldSetter, key, v).set(o, key, v);
-            } else if (valueClass == Long.class) {
-                notNull(longFieldSetter, key, v).set(o, key, v);
-            } else if (valueClass == Double.class) {
-                notNull(doubleFieldSetter, key, v).set(o, key, v);
-            } else if (valueClass == Boolean.class) {
-                notNull(boolFieldSetter, key, v).set(o, key, v);
-            } else if (valueClass == String.class) {
-                notNull(stringFieldSetter, key, v).set(o, key, v);
-            } else {
-                notNull(objectFieldSetter, key, v).set(o, key, v);
+            try {
+                Class<?> valueClass = v == null ? null : v.getClass();
+                if (valueClass == null) {
+                    notNull(nullFieldSetter, o, key, v).set(o, key, v);
+                } else if (valueClass == Long.class) {
+                    notNull(longFieldSetter, o, key, v).set(o, key, v);
+                } else if (valueClass == Double.class) {
+                    notNull(doubleFieldSetter, o, key, v).set(o, key, v);
+                } else if (valueClass == Boolean.class) {
+                    notNull(boolFieldSetter, o, key, v).set(o, key, v);
+                } else if (valueClass == String.class) {
+                    notNull(stringFieldSetter, o, key, v).set(o, key, v);
+                } else {
+                    notNull(objectFieldSetter, o, key, v).set(o, key, v);
+                }
+            } catch (Exception e) {
+                throw new IllegalArgumentException("can't set " + o.getClass().getSimpleName() + "[" + key + "] = " + v, e);
             }
         }
 
-        private static SubSetter notNull(SubSetter ss, Object key, Object v) {
+        private static SubSetter notNull(SubSetter ss, Object o, Object key, Object v) {
             if (ss == null) {
-                throw new IllegalArgumentException("field " + key + " can not be set to " + (v == null ? "null" : "a " + v.getClass().getSimpleName()));
+                throw new IllegalArgumentException("field " + key + "of a " + o.getClass().getSimpleName() + " can not be set to " + (v == null ? "null" : "a " + v.getClass().getSimpleName()));
             }
             return ss;
         }
@@ -885,5 +921,35 @@ public class GenericsUtil {
             }
             ((Map<Object, Float>) o).put(key, v);
         }
+    }
+
+    public static Class<?> box(Class<?> t) {
+        if (t.isPrimitive()) {
+            if (t == long.class) {
+                return Long.class;
+            }
+            if (t == int.class) {
+                return Integer.class;
+            }
+            if (t == short.class) {
+                return Short.class;
+            }
+            if (t == byte.class) {
+                return Byte.class;
+            }
+            if (t == char.class) {
+                return Character.class;
+            }
+            if (t == double.class) {
+                return Double.class;
+            }
+            if (t == float.class) {
+                return Float.class;
+            }
+            if (t == boolean.class) {
+                return Boolean.class;
+            }
+        }
+        return t;
     }
 }
