@@ -1,5 +1,5 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// (C) Copyright 2018-2021 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
+// (C) Copyright 2018-2022 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
 //                                                                                                                     ~
 // Licensed under the GNU Lesser General Public License v3.0 (the 'License'). You may not use this file except in      ~
 // compliance with the License. You may obtain a copy of the License at: https://choosealicense.com/licenses/lgpl-3.0  ~
@@ -16,21 +16,23 @@
 package org.modelingvalue.json;
 
 import java.util.Objects;
+import java.util.Stack;
 import java.util.function.Supplier;
 
 public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
-    private static final String  TRUE_STRING  = "true";
-    private static final String  FALSE_STRING = "false";
-    private static final String  NULL_STRING  = "null";
-    private static final char    EOF_CHAR     = '\000';
+    private static final String        TRUE_STRING  = "true";
+    private static final String        FALSE_STRING = "false";
+    private static final String        NULL_STRING  = "null";
+    private static final char          EOF_CHAR     = '\000';
     //
-    private final        String  input;
+    private final        String        input;
     //
-    private              int     i;
-    private              char    current;
-    private              boolean eof;
-    private              int     level;
-    private              int     index;
+    private              int           i;
+    private              char          current;
+    private              boolean       eof;
+    private              int           level;
+    private              int           index;
+    private              Stack<Object> path;
 
     protected FromJsonBase(String input) {
         this.input = Objects.requireNonNull(input);
@@ -40,6 +42,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         i     = 0;
         level = 0;
         index = 0;
+        path  = new Stack<>();
         next(0);
         begin();
         Object root = parseElement();
@@ -57,32 +60,32 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         return root;
     }
 
-    protected MAP_TYPE makeMap() {
-        return null;
-    }
-
     protected ARRAY_TYPE makeArray() {
         return null;
-    }
-
-    protected String makeMapKey(String key) {
-        return key;
-    }
-
-    protected MAP_TYPE makeMapEntry(MAP_TYPE m, String key, Object value) {
-        return m;
     }
 
     protected ARRAY_TYPE makeArrayEntry(ARRAY_TYPE l, Object o) {
         return l;
     }
 
-    protected Object closeMap(MAP_TYPE m) {
+    protected Object closeArray(ARRAY_TYPE l) {
+        return l;
+    }
+
+    protected MAP_TYPE makeMap() {
+        return null;
+    }
+
+    protected Object makeMapKey(String key) {
+        return key;
+    }
+
+    protected MAP_TYPE makeMapEntry(MAP_TYPE m, Object key, Object value) {
         return m;
     }
 
-    protected Object closeArray(ARRAY_TYPE l) {
-        return l;
+    protected Object closeMap(MAP_TYPE m) {
+        return m;
     }
 
     @SuppressWarnings("unused")
@@ -97,6 +100,10 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     @SuppressWarnings("unused")
     protected int getIndex() {
         return index;
+    }
+
+    protected Stack<Object> getPath() {
+        return path;
     }
 
     protected IllegalArgumentException error() {
@@ -166,16 +173,18 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         next();
         skipWS();
         if (current != '}') {
-            A:
+            loop:
             while (true) {
-                String key = makeMapKey(parseString());
+                Object key = makeMapKey(parseString());
                 skipWS();
                 if (current != ':') {
                     throw error();
                 }
                 next();
                 skipWS();
+                path.push(key);
                 m = makeMapEntry(m, key, parseValue());
+                path.pop();
                 skipWS();
                 switch (current) {
                 case ',':
@@ -183,7 +192,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
                     skipWS();
                     break;
                 case '}':
-                    break A;
+                    break loop;
                 default:
                     throw error();
                 }
@@ -206,7 +215,9 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         if (current != ']') {
             A:
             while (true) {
+                path.push(index);
                 l = makeArrayEntry(l, parseValue());
+                path.pop();
                 skipWS();
                 switch (current) {
                 case ',':

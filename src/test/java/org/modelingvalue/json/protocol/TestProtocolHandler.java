@@ -1,5 +1,5 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// (C) Copyright 2018-2021 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
+// (C) Copyright 2018-2022 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
 //                                                                                                                     ~
 // Licensed under the GNU Lesser General Public License v3.0 (the 'License'). You may not use this file except in      ~
 // compliance with the License. You may obtain a copy of the License at: https://choosealicense.com/licenses/lgpl-3.0  ~
@@ -29,22 +29,24 @@ public class TestProtocolHandler extends ProtocolHandler {
     public static final String GET_MAGIC_MESSAGE_KEY      = "getMagic";
     public static final String MAGIC_MESSAGE_KEY          = "magic";
 
-    public static TestProtocolHandler of(String host, int port) throws IOException {
+    public static TestProtocolHandler of(String host, int port, char messageSeparator) throws IOException {
         Socket       socket = new Socket(host, port);
         OutputStream out    = socket.getOutputStream();
         InputStream  in     = socket.getInputStream();
-        return new TestProtocolHandler("TPH:" + socket.getLocalPort() + "=>" + host + ":" + port, in, out);
+        return new TestProtocolHandler("TPH:" + socket.getLocalPort() + "=>" + host + ":" + port, in, out, messageSeparator);
     }
 
     private final Map<String, Long> pingCountMap = new HashMap<>();
     private       Thread            pinger;
 
-    public TestProtocolHandler(String id, InputStream in, OutputStream out) {
-        super(id, in, out);
+    public TestProtocolHandler(String id, InputStream in, OutputStream out, char messageSeparator) {
+        super(id, in, out, messageSeparator);
 
         add(MessageHandler.of(PING_MESSAGE_KEY, m -> pingCountMap.compute(m.senderUuid(), (k, old) -> (old == null ? 0 : old) + 1)));
         add(MessageHandler.of(GET_PING_COUNT_MESSAGE_KEY, PING_COUNT_MESSAGE_KEY, m -> send(PING_COUNT_MESSAGE_KEY, pingCountMap)));
         add(MessageHandler.of(GET_MAGIC_MESSAGE_KEY, MAGIC_MESSAGE_KEY, m -> send(MAGIC_MESSAGE_KEY, Map.of("magicNumber", 4711L))));
+
+        start();
     }
 
     public void ping() {
@@ -63,7 +65,7 @@ public class TestProtocolHandler extends ProtocolHandler {
         pingCountMap.remove(m.senderUuid());
     }
 
-    public void startPinger() {
+    public void start100Pinger() {
         pinger = new Thread("pinger") {
             @Override
             public void run() {

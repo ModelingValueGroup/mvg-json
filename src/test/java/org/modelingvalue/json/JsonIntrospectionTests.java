@@ -1,5 +1,5 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// (C) Copyright 2018-2021 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
+// (C) Copyright 2018-2022 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
 //                                                                                                                     ~
 // Licensed under the GNU Lesser General Public License v3.0 (the 'License'). You may not use this file except in      ~
 // compliance with the License. You may obtain a copy of the License at: https://choosealicense.com/licenses/lgpl-3.0  ~
@@ -15,14 +15,14 @@
 
 package org.modelingvalue.json;
 
-import static org.modelingvalue.json.Json.toJson;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.RepeatedTest;
 
+import static org.modelingvalue.json.Json.toJson;
+
 public class JsonIntrospectionTests {
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "FieldMayBeFinal"})
     public static class ProbeA {
         int aap01 = 1;
         private                int aap02 = 2;
@@ -47,7 +47,7 @@ public class JsonIntrospectionTests {
         int aap99 = 99;
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "FieldMayBeFinal"})
     public static class ProbeB extends ProbeA {
         int aap01 = 101;
         private                int aap02 = 102;
@@ -78,25 +78,36 @@ public class JsonIntrospectionTests {
 
     @RepeatedTest(1)
     public void listsToJson() {
-        Assertions.assertEquals("{" + "\"aap01\":101," + "\"aap02\":102," + "\"aap03\":103," + "\"aap04\":104," +
-                                //05
-                                //06
-                                //07
-                                //08
-                                "\"aap09\":109," + "\"aap10\":1010," + "\"aap11\":1011," + "\"aap12\":1012," +
-                                //13
-                                //14
-                                //15
-                                //16
-                                "\"aap99\":99," + "\"name\":\"xyzzy\"," + "\"probea\":{" +
-                /**/"\"aap01\":1," +
-                /**/"\"aap02\":2," +
-                /**/"\"aap03\":3," +
-                /**/"\"aap04\":4," +
-                /**/"\"aap09\":9," +
-                /**/"\"aap10\":10," +
-                /**/"\"aap11\":11," +
-                /**/"\"aap12\":12," +
-                /**/"\"aap99\":99" + "}" + "}", toJson(new ProbeB()));
+        Assertions.assertEquals("{"
+                                + "\"aap01\":101,"
+                                + "\"aap02\":102,"
+                                + "\"aap03\":103,"
+                                + "\"aap04\":104,"
+                                //aap05: static field not in json
+                                //aap06: static field not in json
+                                //aap07: static field not in json
+                                //aap08: static field not in json
+                                + "\"aap09\":109,"
+                                + "\"aap10\":1010,"
+                                + "\"aap11\":1011,"
+                                + "\"aap12\":1012,"
+                                //aap13: static field not in json
+                                //aap14: static field not in json
+                                //aap15: static field not in json
+                                //aap16: static field not in json
+                                + "\"aap99\":99,"
+                                + "\"name\":\"xyzzy\","
+                                + "\"probea\":{"
+                                + /**/"\"aap01\":1,"
+                                + /**/"\"aap02\":2,"
+                                + /**/"\"aap03\":3,"
+                                + /**/"\"aap04\":4,"
+                                + /**/"\"aap09\":9,"
+                                + /**/"\"aap10\":10,"
+                                + /**/"\"aap11\":11,"
+                                + /**/"\"aap12\":12,"
+                                + /**/"\"aap99\":99"
+                                + "}"
+                                + "}", toJson(new ProbeB()));
     }
 }

@@ -1,5 +1,5 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// (C) Copyright 2018-2021 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
+// (C) Copyright 2018-2022 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
 //                                                                                                                     ~
 // Licensed under the GNU Lesser General Public License v3.0 (the 'License'). You may not use this file except in      ~
 // compliance with the License. You may obtain a copy of the License at: https://choosealicense.com/licenses/lgpl-3.0  ~
@@ -15,156 +15,134 @@
 
 package org.modelingvalue.json.protocol;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.modelingvalue.json.TestUtil;
 
-import java.io.IOException;
+import java.time.Duration;
 import java.util.Map;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.modelingvalue.syncproxy.Main;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SuppressWarnings("unchecked")
 public class ProtocolTests {
-    public static final int                         TEST_PORT = 25430;
-    private final       TestProtocolHandlerWithPeer tph       = TestProtocolHandlerWithPeer.createPipedWithPeer();
+    private TestProtocolHandlerWithPeer tph;
+
+    @BeforeEach
+    public void beforeEach() {
+        assertNull(tph);
+        tph = TestProtocolHandlerWithPeer.createPipedWithPeer('\n');
+    }
 
     @AfterEach
-    public void afterEach() throws IOException, InterruptedException {
+    public void afterEach() throws Throwable {
+        assertNotNull(tph);
         if (!tph.isShutdown()) {
             tph.shutdown();
-            long t0 = System.currentTimeMillis();
-            while (!tph.isShutdown() && System.currentTimeMillis() < t0 + 30_000) {
-                //noinspection BusyWait
-                Thread.sleep(1);
-            }
-            assertTrue(tph.isShutdown());
+            TestUtil.assertEventually("correctly shutdown after test", () -> assertTrue(tph.isShutdown()));
         }
+        tph = null;
     }
 
     @Test
     public void onePingTest() {
-        assertEquals(0L, tph.getPingCount());
-        tph.ping();
-        assertEquals(1L, tph.getPingCount());
-        tph.ping();
-        assertEquals(2L, tph.getPingCount());
-        tph.ping();
-        assertEquals(3L, tph.getPingCount());
+        assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
+            assertEquals(0L, tph.getPingCount());
+            tph.ping();
+            assertEquals(1L, tph.getPingCount());
+            tph.ping();
+            assertEquals(2L, tph.getPingCount());
+            tph.ping();
+            assertEquals(3L, tph.getPingCount());
+        });
     }
 
     @Test
     public void manyPingTest() {
-        for (int i = 0; i < 100; i++) {
-            tph.ping();
-        }
-        assertEquals(100L, tph.getPingCount());
+        assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
+            for (int i = 0; i < 100; i++) {
+                tph.ping();
+            }
+            assertEquals(100L, tph.getPingCount());
+        });
     }
 
     @Test
     public void seqNumberTest() {
-        Message message = tph.sendAndReceiveSingle("getPingCount", "pingCount", null);
-        assertEquals(1, message.senderMessageNumber());
-        assertEquals(1, message.receiverMessageNumber());
-        assertEquals(0L, ((Map<String, Long>) message.json()).get(tph.getUUID()));
+        assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
+            Message message = tph.sendAndReceiveSingle("getPingCount", "pingCount", null);
+            assertEquals(1, message.senderMessageNumber());
+            assertEquals(1, message.receiverMessageNumber());
+            assertEquals(0L, ((Map<String, Long>) message.json()).get(tph.getUUID()));
 
-        for (int i = 0; i < 100; i++) {
-            tph.ping();
-        }
+            for (int i = 0; i < 100; i++) {
+                tph.ping();
+            }
 
-        message = tph.sendAndReceiveSingle("getPingCount", "pingCount", null);
-        assertEquals(2, message.senderMessageNumber());
-        assertEquals(2, message.receiverMessageNumber());
-        assertEquals(100L, ((Map<String, Long>) message.json()).get(tph.getUUID()));
+            message = tph.sendAndReceiveSingle("getPingCount", "pingCount", null);
+            assertEquals(2, message.senderMessageNumber());
+            assertEquals(2, message.receiverMessageNumber());
+            assertEquals(100L, ((Map<String, Long>) message.json()).get(tph.getUUID()));
 
-        message = tph.sendAndReceiveSingle("getPingCount", "pingCount", null);
-        assertEquals(3, message.senderMessageNumber());
-        assertEquals(3, message.receiverMessageNumber());
-        assertEquals(100L, ((Map<String, Long>) message.json()).get(tph.getUUID()));
+            message = tph.sendAndReceiveSingle("getPingCount", "pingCount", null);
+            assertEquals(3, message.senderMessageNumber());
+            assertEquals(3, message.receiverMessageNumber());
+            assertEquals(100L, ((Map<String, Long>) message.json()).get(tph.getUUID()));
+        });
     }
 
     @Test
-    public void unknownTest() throws InterruptedException {
-        tph.send("unknown", "@@@");
-        Thread.sleep(50);
-        Message unknown = tph.peer.getLastMessageSingle("unknown");
-        assertNotNull(unknown);
-        assertEquals(unknown.keyword(), "unknown");
-        assertEquals(unknown.json(), "@@@");
+    public void unknownTest() {
+        assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
+            tph.send("unknown", "@@@");
+            TestUtil.assertEventually("unknown is handled", () -> {
+                Message unknown = tph.peer.getLastMessageSingle("unknown");
+                assertNotNull(unknown);
+                assertEquals(unknown.keyword(), "unknown");
+                assertEquals(unknown.json(), "@@@");
+            });
+        });
     }
 
     @Test
     public void magicTest() {
-        assertEquals(4711L, tph.getMagic());
+        //noinspection CodeBlock2Expr
+        assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
+            assertEquals(4711L, tph.getMagic());
+        });
     }
 
     @Test
-    public void shutdownTest() throws IOException, InterruptedException {
-        tph.ping();
-        tph.ping();
-        tph.ping();
-        tph.ping();
-        Thread.sleep(50);
-        tph.shutdown();
-        Thread.sleep(50);
-        Assertions.assertTrue(tph.isShutdown());
+    public void shutdownTest() {
+        assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
+            tph.ping();
+            tph.ping();
+            tph.ping();
+            tph.ping();
+            Thread.sleep(50);
+
+            tph.shutdown();
+            TestUtil.assertEventually("shutdown done", () -> assertTrue(tph.isShutdown()));
+        });
     }
 
     @Test
-    public void pingerTest() throws InterruptedException {
-        tph.waitForSinglePeer();
-        assertEquals(0, tph.getMyPingCount());
-        tph.startPingerOnPeer();
-        Thread.sleep(500);
-        System.err.println("pinger at " + tph.getMyPingCount());
-        assertTrue(40 < tph.getMyPingCount());
-    }
+    public void pingerTest() {
+        assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
+            TestUtil.waitForSinglePeer(tph);
+            assertEquals(0, tph.getMyPingCount());
+            tph.start100PingerOnPeer();
 
-    @Test
-    public void socketTest() throws IOException, InterruptedException {
-        Main proxy = new Main(TEST_PORT);
-
-        TestProtocolHandler ph1 = TestProtocolHandler.of("localhost", TEST_PORT);
-        TestProtocolHandler ph2 = TestProtocolHandler.of("localhost", TEST_PORT);
-        TestProtocolHandler ph3 = TestProtocolHandler.of("localhost", TEST_PORT);
-
-        Thread.sleep(1000);
-        Map<String, String> m = ph1.getPeerMap();
-        m.keySet().stream().sorted().forEach(k -> System.err.printf("  - %-20s - %s\n", k, m.get(k)));
-        assertEquals(2, m.size());
-        assertEquals(2, m.keySet().stream().distinct().count());
-        assertEquals(2, m.values().stream().distinct().count());
-
-        Thread.sleep(10);
-        ph1.ping();
-        ph2.ping();
-        ph2.ping();
-        ph3.ping();
-        ph3.ping();
-        ph3.ping();
-
-        Thread.sleep(10);
-        assertEquals(2, ph1.getMyPingCount(ph2.getUUID()));
-        assertEquals(3, ph1.getMyPingCount(ph3.getUUID()));
-        assertEquals(1, ph2.getMyPingCount(ph1.getUUID()));
-        assertEquals(3, ph2.getMyPingCount(ph3.getUUID()));
-        assertEquals(1, ph3.getMyPingCount(ph1.getUUID()));
-        assertEquals(2, ph3.getMyPingCount(ph2.getUUID()));
-
-
-        Thread.sleep(10);
-        assertEquals(4711, ph1.getMagic(ph2.getUUID()));
-        assertEquals(4711, ph1.getMagic(ph3.getUUID()));
-
-        Thread.sleep(100);
-        ph1.throwIfProblems();
-        ph2.throwIfProblems();
-        ph3.throwIfProblems();
-
-        Thread.sleep(10);
-        proxy.close();
+            int  target = 25;
+            long t0     = System.currentTimeMillis();
+            TestUtil.assertEventually("ping count at or above " + target, () -> assertTrue(target <= tph.getMyPingCount(), "ping count did not get over " + target + " in time"));
+            long dt = System.currentTimeMillis() - t0;
+            System.err.println("info: it took " + dt + " ms to get to a ping count of " + target);
+        });
     }
 }

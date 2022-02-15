@@ -1,5 +1,5 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// (C) Copyright 2018-2021 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
+// (C) Copyright 2018-2022 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
 //                                                                                                                     ~
 // Licensed under the GNU Lesser General Public License v3.0 (the 'License'). You may not use this file except in      ~
 // compliance with the License. You may obtain a copy of the License at: https://choosealicense.com/licenses/lgpl-3.0  ~
@@ -15,18 +15,19 @@
 
 package org.modelingvalue.json;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.junit.jupiter.api.RepeatedTest;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class JsonCustomTests {
-    @RepeatedTest(1)
+    @Test
     public void counters() {
         assertEquals("1,0,0,0,0,0,0", CountingTesterFromJson.fromJson("[]"));
         assertEquals("3,2,3,3,4,0,0", CountingTesterFromJson.fromJson("[[],[],{\"a\":{\"b\":\"aa\"},\"c\":21}]"));
@@ -40,7 +41,7 @@ public class JsonCustomTests {
     }
 
     public static String readData(String name) {
-        try (BufferedReader is = new BufferedReader(new InputStreamReader(JsonCustomTests.class.getResourceAsStream(name)))) {
+        try (BufferedReader is = new BufferedReader(new InputStreamReader(Objects.requireNonNull(JsonCustomTests.class.getResourceAsStream(name))))) {
             return is.lines().collect(Collectors.joining());
         } catch (IOException e) {
             fail();
@@ -58,6 +59,7 @@ public class JsonCustomTests {
         private int numCurliesString;
 
         public static Object fromJson(String s) {
+            System.err.println("++++ FROM " + s);
             return new CountingTesterFromJson(s).parse();
         }
 
@@ -67,18 +69,21 @@ public class JsonCustomTests {
 
         @Override
         protected Void makeMap() {
+            System.err.printf(">> %-14s: %3d/%3d  -  %s\n", "makeMap", getLevel(), getIndex(), getPath());
             numMaps++;
             return null;
         }
 
         @Override
         protected Void makeArray() {
+            System.err.printf(">> %-14s: %3d/%3d  -  %s\n", "makeArray", getLevel(), getIndex(), getPath());
             numArrays++;
             return null;
         }
 
         @Override
-        protected Void makeMapEntry(Void m, String key, Object value) {
+        protected Void makeMapEntry(Void m, Object key, Object value) {
+            System.err.printf(">> %-14s: %3d/%3d  -  %s  k=%s v=%s\n", "makeMapEntry", getLevel(), getIndex(), getPath(), key, value);
             numMapEntries++;
             countString(key);
             countString(value);
@@ -87,6 +92,7 @@ public class JsonCustomTests {
 
         @Override
         protected Void makeArrayEntry(Void l, Object o) {
+            System.err.printf(">> %-14s: %3d/%3d  -  %s  o=%s\n", "makeArrayEntry", getLevel(), getIndex(), getPath(), o);
             numArrayEntries++;
             countString(o);
             return null;
