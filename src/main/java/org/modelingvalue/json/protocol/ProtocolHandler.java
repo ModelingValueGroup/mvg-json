@@ -58,6 +58,7 @@ public class ProtocolHandler {
     private final IncomingMessagesThread            inThread;
 
     public static ProtocolHandler of(String host, int port, char messageSeparator) throws IOException {
+        //noinspection resource
         Socket          socket          = new Socket(host, port);
         OutputStream    out             = socket.getOutputStream();
         InputStream     in              = socket.getInputStream();
@@ -114,7 +115,7 @@ public class ProtocolHandler {
         String keyword = h.requestKey();
         synchronized (handlerMap) {
             if (handlerMap.containsKey(keyword)) {
-                throw new Error("ProtocolHandler: cannot add MessageHandler: keyword is already mapped to a handler: '" + keyword + "'");
+                throw new RuntimeException("ProtocolHandler: cannot add MessageHandler: keyword is already mapped to a handler: '" + keyword + "'");
             }
             handlerMap.put(keyword, h);
         }
@@ -123,7 +124,7 @@ public class ProtocolHandler {
     public void remove(String keyword) {
         synchronized (handlerMap) {
             if (!handlerMap.containsKey(keyword)) {
-                throw new Error("ProtocolHandler: cannot remove MessageHandler: keyword is not mapped to a handler: '" + keyword + "'");
+                throw new RuntimeException("ProtocolHandler: cannot remove MessageHandler: keyword is not mapped to a handler: '" + keyword + "'");
             }
             handlerMap.remove(keyword);
         }
@@ -156,7 +157,7 @@ public class ProtocolHandler {
                 System.err.println("throwIfProblems: " + problems.size() + " [" + Thread.currentThread().getName() + " - " + System.identityHashCode(this) + "]");
             }
             if (!problems.isEmpty()) {
-                throw new Error("problem in ProtocolHandler", problems.remove(0));
+                throw new RuntimeException("problem in ProtocolHandler", problems.remove(0));
             }
         }
     }
@@ -171,7 +172,7 @@ public class ProtocolHandler {
     protected static <T> T getSingle(Map<String, T> map) {
         int size = map.size();
         if (size != 1) {
-            throw new Error("should have exactly 1 peer but have " + size);
+            throw new RuntimeException("should have exactly 1 peer but have " + size);
         }
         return map.values().stream().findFirst().get();
     }
@@ -204,12 +205,12 @@ public class ProtocolHandler {
                     System.err.printf(">>>%-50s>>>    SEND: %s%s", Thread.currentThread().getName(), msgAligned, msgAligned.endsWith("\n") ? "" : "\n");
                 }
                 if (msg.indexOf(messageSeparator) != msg.length() - 1) {
-                    throw new Error("ProtocolHandler can not send messages with an embedded message separator '" + messageSeparator + "': " + msg);
+                    throw new RuntimeException("ProtocolHandler can not send messages with an embedded message separator '" + messageSeparator + "': " + msg);
                 }
                 out.write(msg);
                 out.flush();
             } catch (IOException e) {
-                throw new Error("problem during send()", e);
+                throw new RuntimeException("problem during send()", e);
             }
         }
     }
@@ -238,25 +239,25 @@ public class ProtocolHandler {
 
     public Message getLastMessageSingle(String keyword) {
         if (getPeerMap().size() != 1) {
-            throw new Error("this is not a P2P connection");
+            throw new RuntimeException("this is not a P2P connection");
         }
         return getLastMessageMulti(keyword).values().stream().findFirst().orElseThrow();
     }
 
     public Message sendAndReceiveSingle(String keyword, String answerKeyword, Object payload) {
         if (getPeerMap().size() != 1) {
-            throw new Error("this is not a P2P connection");
+            throw new RuntimeException("this is not a P2P connection");
         }
         Map<String, Message> m = sendAndReceiveMulti(keyword, answerKeyword, payload);
         if (m.size() != 1) {
-            throw new Error("this is not a P2P connection");
+            throw new RuntimeException("this is not a P2P connection");
         }
         return m.values().stream().findFirst().orElseThrow();
     }
 
     public Map<String, Message> sendAndReceiveMulti(String keyword, String answerKeyword, Object payload) {
         if (answerKeyword == null || answerKeyword.length() == 0) {
-            throw new Error("answerKeyword should not be empty");
+            throw new RuntimeException("answerKeyword should not be empty");
         }
         AnswerMessageHandler h = new AnswerMessageHandler(answerKeyword);
         add(h);
@@ -298,7 +299,7 @@ public class ProtocolHandler {
             try {
                 return syncer.get();
             } catch (Exception e) {
-                throw new Error("problem during wait for answer", e);
+                throw new RuntimeException("problem during wait for answer", e);
             }
         }
     }

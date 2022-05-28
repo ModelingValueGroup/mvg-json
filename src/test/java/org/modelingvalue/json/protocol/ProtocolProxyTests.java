@@ -40,7 +40,7 @@ public class ProtocolProxyTests {
     @RepeatedTest(20)
     public void socketTest() {
         assertTimeoutPreemptively(ofSeconds(10), () -> {
-            char sep   = nextSeparator();
+            char sep = nextSeparator();
             DclareRouter.SHARE_TO_ALL = true;
             DclareRouter proxy = new DclareRouter(0, sep, false);
             try {

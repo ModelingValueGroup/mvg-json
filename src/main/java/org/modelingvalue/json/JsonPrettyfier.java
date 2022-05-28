@@ -52,7 +52,7 @@ public class JsonPrettyfier {
         charArray         = json.toCharArray();
         indentEnabled     = indentString != null;
         if ((indentString == null) != (eolString == null)) {
-            throw new Error("Json: indent and eol must both be set or not set");
+            throw new RuntimeException("Json: indent and eol must both be set or not set");
         }
     }
 

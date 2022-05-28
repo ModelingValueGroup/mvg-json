@@ -32,7 +32,7 @@ class TestProtocolHandlerWithPeer extends TestProtocolHandler {
             PipedOutputStream outPeer = new PipedOutputStream(in);
             return new TestProtocolHandlerWithPeer(in, out, inPeer, outPeer, separator);
         } catch (IOException e) {
-            throw new Error("problem during creation", e);
+            throw new RuntimeException("problem during creation", e);
         }
     }
 

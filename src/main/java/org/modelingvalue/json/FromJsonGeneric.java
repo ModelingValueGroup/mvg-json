@@ -15,6 +15,8 @@
 
 package org.modelingvalue.json;
 
+import org.modelingvalue.json.GenericsUtil.Maker;
+import org.modelingvalue.json.GenericsUtil.SubSetter;
 import org.modelingvalue.json.GenericsUtil.TypeInfo;
 
 import java.lang.reflect.Type;
@@ -30,17 +32,20 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
 
     private final Stack<TypeInfo>     typeInfoStack = new Stack<>();
     private final Map<Type, TypeInfo> typeInfoMap   = new HashMap<>();
+    private       boolean             ignoreSFOs;
 
     public FromJsonGeneric(Type t, String input) {
         super(input);
-        TypeInfo typeInfo = GenericsUtil.makeTypeInfo(t);
-        typeInfoMap.put(t, typeInfo);
-        typeInfoStack.push(typeInfo);
+        typeInfoStack.push(addToTypeInfoMap(t));
+    }
+
+    @SuppressWarnings("unused")
+    public void setIgnoreSFOs(boolean b) {
+        ignoreSFOs = b;
     }
 
     private TypeInfo addToTypeInfoMap(Type type) {
-        typeInfoMap.computeIfAbsent(type, GenericsUtil::makeTypeInfo);
-        return typeInfoMap.get(type);
+        return typeInfoMap.computeIfAbsent(type, t -> GenericsUtil.makeTypeInfo(t, ignoreSFOs));
     }
 
     ///////////////////////////////////////
@@ -48,21 +53,17 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
     protected Object makeMap() {
         Stack<Object> path = getPath();
         if (!path.isEmpty()) {
-            TypeInfo ti = addToTypeInfoMap(typeInfoStack.peek().getSubType(path.peek()));
-            typeInfoStack.push(ti);
+            Type subType = typeInfoStack.peek().getSubType(path.peek());
+            typeInfoStack.push(addToTypeInfoMap(subType));
         }
-        return typeInfoStack.peek().getConstructor().construct();
-    }
-
-    @Override
-    protected Object makeMapKey(String key) {
-        return key;
+        Maker maker = typeInfoStack.peek().getMaker();
+        return maker.make();
     }
 
     @Override
     protected Object makeMapEntry(Object m, Object key, Object value) {
-        typeInfoStack.peek().getSubSetter(key).set(m, key, value);
-        return m;
+        SubSetter subSetter = typeInfoStack.peek().getSubSetter(key);
+        return subSetter.set(m, key, value);
     }
 
     @Override
@@ -76,17 +77,18 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
     protected Object makeArray() {
         Stack<Object> path = getPath();
         if (!path.isEmpty()) {
-            TypeInfo ti = addToTypeInfoMap(typeInfoStack.peek().getSubType(path.peek()));
-            typeInfoStack.push(ti);
+            Type subType = typeInfoStack.peek().getSubType(path.peek());
+            typeInfoStack.push(addToTypeInfoMap(subType));
         }
-        return typeInfoStack.peek().getConstructor().construct();
+        Maker maker = typeInfoStack.peek().getMaker();
+        return maker.make();
     }
 
     @Override
     protected Object makeArrayEntry(Object a, Object value) {
-        int index = getIndex();
-        typeInfoStack.peek().getSubSetter(index).set(a, index, value);
-        return a;
+        int       index     = getIndex();
+        SubSetter subSetter = typeInfoStack.peek().getSubSetter(index);
+        return subSetter.set(a, index, value);
     }
 
     @Override
