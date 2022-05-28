@@ -59,7 +59,9 @@ public class JsonCustomTests {
         private int numCurliesString;
 
         public static Object fromJson(String s) {
-            System.err.println("++++ FROM " + s);
+            if (TestUtil.VERBOSE_TESTS) {
+                System.err.println("++++ FROM " + s);
+            }
             return new CountingTesterFromJson(s).parse();
         }
 
@@ -69,21 +71,27 @@ public class JsonCustomTests {
 
         @Override
         protected Void makeMap() {
-            System.err.printf(">> %-14s: %3d/%3d  -  %s\n", "makeMap", getLevel(), getIndex(), getPath());
+            if (TestUtil.VERBOSE_TESTS) {
+                System.err.printf(">> %-14s: %3d/%3d  -  %s\n", "makeMap", getLevel(), getIndex(), getPath());
+            }
             numMaps++;
             return null;
         }
 
         @Override
         protected Void makeArray() {
-            System.err.printf(">> %-14s: %3d/%3d  -  %s\n", "makeArray", getLevel(), getIndex(), getPath());
+            if (TestUtil.VERBOSE_TESTS) {
+                System.err.printf(">> %-14s: %3d/%3d  -  %s\n", "makeArray", getLevel(), getIndex(), getPath());
+            }
             numArrays++;
             return null;
         }
 
         @Override
         protected Void makeMapEntry(Void m, Object key, Object value) {
-            System.err.printf(">> %-14s: %3d/%3d  -  %s  k=%s v=%s\n", "makeMapEntry", getLevel(), getIndex(), getPath(), key, value);
+            if (TestUtil.VERBOSE_TESTS) {
+                System.err.printf(">> %-14s: %3d/%3d  -  %s  k=%s v=%s\n", "makeMapEntry", getLevel(), getIndex(), getPath(), key, value);
+            }
             numMapEntries++;
             countString(key);
             countString(value);
@@ -92,7 +100,9 @@ public class JsonCustomTests {
 
         @Override
         protected Void makeArrayEntry(Void l, Object o) {
-            System.err.printf(">> %-14s: %3d/%3d  -  %s  o=%s\n", "makeArrayEntry", getLevel(), getIndex(), getPath(), o);
+            if (TestUtil.VERBOSE_TESTS) {
+                System.err.printf(">> %-14s: %3d/%3d  -  %s  o=%s\n", "makeArrayEntry", getLevel(), getIndex(), getPath(), o);
+            }
             numArrayEntries++;
             countString(o);
             return null;

@@ -30,9 +30,9 @@ public class TestProtocolHandler extends ProtocolHandler {
     public static final String MAGIC_MESSAGE_KEY          = "magic";
 
     public static TestProtocolHandler of(String host, int port, char messageSeparator) throws IOException {
-        Socket       socket = new Socket(host, port);
-        OutputStream out    = socket.getOutputStream();
-        InputStream  in     = socket.getInputStream();
+        @SuppressWarnings("resource") Socket socket = new Socket(host, port);
+        OutputStream                         out    = socket.getOutputStream();
+        InputStream                          in     = socket.getInputStream();
         return new TestProtocolHandler("TPH:" + socket.getLocalPort() + "=>" + host + ":" + port, in, out, messageSeparator);
     }
 
@@ -73,10 +73,10 @@ public class TestProtocolHandler extends ProtocolHandler {
                     try {
                         Thread.sleep(10);
                         ping();
-                    } catch (Error e) {
-                        System.err.println("pinger encountered: " + e.getMessage());
-                        break;
                     } catch (InterruptedException e) {
+                        break;
+                    } catch (Throwable e) {
+                        System.err.println("pinger encountered: " + e.getMessage());
                         break;
                     }
                 }

@@ -13,45 +13,14 @@
 //     Arjan Kok, Carel Bast                                                                                           ~
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-package org.modelingvalue.json.protocol;
+package org.modelingvalue.json;
 
-import org.modelingvalue.json.TestUtil;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-
-class TestProtocolHandlerWithPeer extends TestProtocolHandler {
-    public static TestProtocolHandlerWithPeer createPipedWithPeer(char separator) {
-        try {
-            PipedInputStream  in      = new PipedInputStream();
-            PipedInputStream  inPeer  = new PipedInputStream();
-            PipedOutputStream out     = new PipedOutputStream(inPeer);
-            PipedOutputStream outPeer = new PipedOutputStream(in);
-            return new TestProtocolHandlerWithPeer(in, out, inPeer, outPeer, separator);
-        } catch (IOException e) {
-            throw new RuntimeException("problem during creation", e);
-        }
-    }
-
-    public final TestProtocolHandler peer;
-
-    public TestProtocolHandlerWithPeer(InputStream in, OutputStream out, InputStream inPeer, OutputStream outPeer, char separator) {
-        super("test", in, out, separator);
-        peer = new TestProtocolHandler("peer", inPeer, outPeer, separator);
-        TestUtil.waitForSinglePeer(this);
-        TestUtil.waitForSinglePeer(peer);
-    }
-
-    public void start100PingerOnPeer() {
-        peer.start100Pinger();
-    }
-
-    @Override
-    public boolean isShutdown() {
-        return super.isShutdown() && peer.isShutdown();
-    }
-
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface JsonClassSelector {
 }

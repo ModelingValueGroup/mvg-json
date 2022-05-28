@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Currency;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -247,28 +248,34 @@ public class JsonTests {
 
     @Test
     public void objectFromJson() {
-        AAA o = fromJson(AAA.class, "{" +
-                                    "\"num\":300," +
-                                    "\"bool\":true," +
-                                    "\"string\":\"burpie\"," +
-                                    "\"b-o\":true," +
-                                    "\"b_y+t#e\":44," +
-                                    "\"sh\":10000," +
-                                    "\"in\":123456789," +
-                                    "\"lo\":1234567890123456789," +
-                                    "\"db\":3.1415," +
-                                    "\"fl\":4711.2," +
-                                    "\"st\":\"burp••\"," +
-                                    "\"ch\":44," +
-                                    "\"ob1\":{\"id\":33,\"sub\":{\"id\":88.0,\"sub\":{\"id\":99}}}," +
-                                    "\"ob2\":{\"id\":\"44\"}," +
-                                    "\"li1\":[1,2,3]," +
-                                    "\"li2\":[{\"id\":1},{\"id\":2,\"sub\":{\"id\":21}},{\"id\":3,\"sub\":{\"id\":31}}]," +
-                                    "\"li3\":[[{\"id\":1}],[{\"id\":2}]]," +
-                                    "\"ma\":{\"yes\":true,\"sure\":true,\"nope\":false}," +
-                                    "\"ss\":[1,3,1,3]" +
-                                    "}"
-        );
+        String json_1 = "{" +
+                        "\"b-o\":true," +
+                        "\"b_y+t#e\":44," +
+                        "\"bool\":true," +
+                        "\"ch\":44," +
+                        "\"db\":3.1415," +
+                        "\"fl\":4711.2," +
+                        "\"in\":123456789," +
+                        "\"li1\":[1,2,3]," +
+                        "\"li2\":[{\"id\":1},{\"id\":2,\"sub\":{\"id\":21}},{\"id\":3,\"sub\":{\"id\":31}}]," +
+                        "\"li3\":[[{\"id\":1}],[{\"id\":2}]]," +
+                        "\"listOfAbstract\":[" +
+                        "    {\"$type\":\"org.modelingvalue.json.JsonTests$XXX# burp\",\"field\":1111,\"shared_field\":4711}," +
+                        "    {\"$type\":\"org.modelingvalue.json.JsonTests$YYY# why?\",\"field\":2222,\"shared_field\":4712}" +
+                        "]," +
+                        "\"lo\":1234567890123456789," +
+                        "\"ma\":{\"nope\":false,\"sure\":true,\"yes\":true}," +
+                        "\"num\":300," +
+                        "\"ob1\":{\"id\":33,\"sub\":{\"id\":88.0,\"sub\":{\"id\":99}}}," +
+                        "\"ob2\":{\"id\":\"44\"}," +
+                        "\"sh\":10000," +
+                        "\"ss\":[1,3,1,3]," +
+                        "\"st\":\"burp••\"," +
+                        "\"string\":\"burpie\"" +
+                        "}";
+
+        AAA o = fromJson(AAA.class, json_1);
+
         assertNotNull(o);
         assertTrue(o.bo);
         assertNotNull(o.num);
@@ -293,11 +300,32 @@ public class JsonTests {
         assertEquals(new SUB(1, null), o.li2.get(0));
         assertEquals(new SUB(2, new SUB(21, null)), o.li2.get(1));
         assertEquals(new SUB(3, new SUB(31, null)), o.li2.get(2));
+        assertEquals(2, o.li3.size());
+        assertEquals(HashSet.class, o.li3.get(0).getClass());
+        assertEquals(HashSet.class, o.li3.get(1).getClass());
+        assertEquals(1, o.li3.get(0).size());
+        assertEquals(1, o.li3.get(1).size());
+        assertTrue(o.li3.get(0).contains(new SUB(1, null)));
+        assertTrue(o.li3.get(1).contains(new SUB(2, null)));
         assertEquals(Set.of((short) 1, (short) 3), o.ss);
         assertEquals(3, o.ma.size());
         assertEquals(true, o.ma.get("yes"));
         assertEquals(true, o.ma.get("sure"));
         assertEquals(false, o.ma.get("nope"));
+
+        assertNotNull(o.listOfAbstract);
+        assertEquals(2, o.listOfAbstract.size());
+        assertTrue(o.listOfAbstract.get(0) instanceof XXX);
+        assertTrue(o.listOfAbstract.get(1) instanceof YYY);
+        assertEquals(4711, o.listOfAbstract.get(0).shared_field);
+        assertEquals(4712, o.listOfAbstract.get(1).shared_field);
+        assertEquals(1111, ((XXX) o.listOfAbstract.get(0)).field);
+        assertEquals(2222, ((YYY) o.listOfAbstract.get(1)).field);
+
+        String json_2 = toJson(o);
+        String json_3 = toJson(fromJson(AAA.class, json_2));
+
+        assertEquals(json_2, json_3);
     }
 
     //############################################################################################################################################################
@@ -307,6 +335,7 @@ public class JsonTests {
         int id;
         SUB sub;
 
+        @SuppressWarnings("unused")
         public SUB() {
         }
 
@@ -369,6 +398,34 @@ public class JsonTests {
         }
     }
 
+    @SuppressWarnings("unused")
+    public static abstract class Base {
+        String $type;
+
+        @JsonClassSelector
+        public static Class<?> selectClassFrom(String name, Object value) throws ClassNotFoundException {
+            if (!name.equals("$type")) {
+                throw new ClassNotFoundException("json class not found: '$type' field expected as selector field name but found " + name + " (value=" + value + ")");
+            }
+            if (!(value instanceof String)) {
+                throw new ClassNotFoundException("json class not found: '$type' field should be String but is " + (value == null ? "<null>" : value.getClass().getSimpleName()) + " (value=" + value + ")");
+            }
+            return Class.forName(((String) value).replaceAll("#.*", ""));
+        }
+    }
+
+    public static abstract class Abstract extends Base {
+        int shared_field;
+    }
+
+    public static class XXX extends Abstract {
+        int field;
+    }
+
+    public static class YYY extends Abstract {
+        int field;
+    }
+
     public static class AAA {
         NUM    num;
         BOOL   bool;
@@ -392,6 +449,7 @@ public class JsonTests {
         List<Set<SUB>>       li3;
         Set<Short>           ss;
         Map<String, Boolean> ma;
+        List<Abstract>       listOfAbstract;
     }
 
     public List<Serializable> getTestObject1() {

@@ -26,6 +26,8 @@ import static java.time.Duration.ofSeconds;
 
 @SuppressWarnings("BusyWait")
 public class TestUtil {
+    public static final boolean VERBOSE_TESTS = Boolean.getBoolean("VERBOSE_TESTS");
+
     public static void assertEventually(String name, Executable executable) throws Throwable {
         assertEventually(name, ofSeconds(5), ofMillis(50), executable);
     }
@@ -43,7 +45,9 @@ public class TestUtil {
             }
         } while (System.currentTimeMillis() - t0 < max.toMillis());
 
-        System.err.printf("assertEventually: it took %5d ms and %4d failures for: %s\n", System.currentTimeMillis() - t0, n, name);
+        if (VERBOSE_TESTS) {
+            System.err.printf("assertEventually: it took %5d ms and %4d failures for: %s\n", System.currentTimeMillis() - t0, n, name);
+        }
 
         long t1 = System.currentTimeMillis();
         do {

@@ -142,7 +142,9 @@ public class ProtocolTests {
             long t0     = System.currentTimeMillis();
             TestUtil.assertEventually("ping count at or above " + target, () -> assertTrue(target <= tph.getMyPingCount(), "ping count did not get over " + target + " in time"));
             long dt = System.currentTimeMillis() - t0;
-            System.err.println("info: it took " + dt + " ms to get to a ping count of " + target);
+            if (TestUtil.VERBOSE_TESTS) {
+                System.err.println("info: it took " + dt + " ms to get to a ping count of " + target);
+            }
         });
     }
 }

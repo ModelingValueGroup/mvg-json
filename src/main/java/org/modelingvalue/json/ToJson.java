@@ -15,6 +15,7 @@
 
 package org.modelingvalue.json;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -31,7 +32,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-@SuppressWarnings("unused")
 public class ToJson {
     private static final String NULL_STRING = "null";
 
@@ -42,13 +42,19 @@ public class ToJson {
     private final Object        root;
     private final StringBuilder b = new StringBuilder();
     private       int           level;
+    private       int           index;
+    private       boolean       ignoreSFOs; //SFO = Single Field Object
 
-    private int index;
-
-    protected ToJson(Object root) {
-        this.root = root;
+    protected ToJson(Object o) {
+        this.root = o;
     }
 
+    @SuppressWarnings("unused")
+    public void setIgnoreSFOs(boolean b) {
+        ignoreSFOs = b;
+    }
+
+    @SuppressWarnings("unused")
     public String render() {
         b.setLength(0);
         level = 0;
@@ -57,10 +63,12 @@ public class ToJson {
         return b.toString();
     }
 
+    @SuppressWarnings("unused")
     public int getLevel() {
         return level;
     }
 
+    @SuppressWarnings("unused")
     public int getIndex() {
         return index;
     }
@@ -135,8 +143,13 @@ public class ToJson {
 
     private void putInIntrospectionMap(Field f, Map<String, Object> map, Object o) {
         try {
+            String   fieldName      = f.getName();
+            JsonName nameAnnotation = f.getAnnotation(JsonName.class);
+            if (nameAnnotation != null) {
+                fieldName = nameAnnotation.value();
+            }
             f.setAccessible(true);
-            map.put(f.getName(), f.get(o));
+            map.put(fieldName, f.get(o));
         } catch (IllegalAccessException e) {
             // ignore, just leave out this element
         }
@@ -172,6 +185,7 @@ public class ToJson {
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     protected void jsonFromAny(Object o) {
         o = filter(o);
+        o = replaceSFO(o);
         if (o == null) {
             b.append(NULL_STRING);
 
@@ -222,6 +236,32 @@ public class ToJson {
         } else {
             jsonFromMap(getIntrospectionMap(o));
         }
+    }
+
+    private Object replaceSFO(Object o) {
+        Class<?> clazz;
+        if (!ignoreSFOs
+            && o != null
+            && !(clazz = o.getClass()).isPrimitive()
+            && clazz.getSuperclass() == Object.class
+            && GenericsUtil.unbox(clazz) == clazz
+        ) {
+            Field[]          fields = clazz.getDeclaredFields();
+            Constructor<?>[] constructors;
+            if (fields.length == 1
+                && (constructors = clazz.getDeclaredConstructors()).length == 1
+                && constructors[0].getParameterCount() == 1
+                && constructors[0].getParameterTypes()[0] == fields[0].getType()
+            ) {
+                try {
+                    fields[0].setAccessible(true);
+                    o = fields[0].get(o);
+                } catch (IllegalAccessException e) {
+                    // skip the SFO
+                }
+            }
+        }
+        return o;
     }
 
     protected void jsonFromMap(Object o) {

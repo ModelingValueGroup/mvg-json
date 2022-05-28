@@ -16,7 +16,7 @@
 package org.modelingvalue.json.protocol;
 
 import org.junit.jupiter.api.RepeatedTest;
-import org.modelingvalue.syncproxy.Main;
+import org.modelingvalue.syncproxy.DclareRouter;
 
 import java.util.Map;
 
@@ -40,8 +40,9 @@ public class ProtocolProxyTests {
     @RepeatedTest(20)
     public void socketTest() {
         assertTimeoutPreemptively(ofSeconds(10), () -> {
-            char sep   = nextSeparator();
-            Main proxy = new Main(0, sep, false);
+            char sep = nextSeparator();
+            DclareRouter.SHARE_TO_ALL = true;
+            DclareRouter proxy = new DclareRouter(0, sep, false);
             try {
                 TestProtocolHandler ph1 = TestProtocolHandler.of("localhost", proxy.getPort(), sep);
                 TestProtocolHandler ph2 = TestProtocolHandler.of("localhost", proxy.getPort(), sep);

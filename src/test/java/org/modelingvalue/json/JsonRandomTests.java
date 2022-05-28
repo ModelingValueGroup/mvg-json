@@ -25,27 +25,9 @@ import java.util.Map;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class JsonRandomTests {
-    @RepeatedTest(1)
-    public void oneBigObjectToJson() {
-        Object original = randomObject(12);
-
-        long   t0    = System.currentTimeMillis();
-        String json1 = Json.toJson(original);
-        Object copy1 = Json.fromJson(json1);
-        String json2 = Json.toJson(copy1);
-        Object copy2 = Json.fromJson(json2);
-        long   chars = json1.length();
-
-        double mps = (1000.0 * chars) / (1024.0 * 1024.0 * (System.currentTimeMillis() - t0));
-        System.err.printf("handled    %7.2f Mb/s json in %6d run\n", mps, 1);
-
-        assertEquals(copy1, copy2);
-        assertEquals(json1, json2);
-
-    }
-
     @RepeatedTest(10)
     public void prettify() {
         String json = JsonCustomTests.readData("test.json");
@@ -56,17 +38,45 @@ public class JsonRandomTests {
         }
         long delta = System.currentTimeMillis() - t0;
 
-        double mps = (100.0 * 1000.0 * json.length()) / (1024.0 * 1024.0 * delta);
-        System.err.printf("prettified %7.2f Mb/s json\n", mps);
+        double mbps = (100.0 * 1000.0 * json.length()) / (1024.0 * 1024.0 * delta);
+        System.err.printf("prettify-test:                  %7.2f Mb/s json\n", mbps);
+        assertTrue(10.0 < mbps, "<10 Mb/s (you either have a very slow machine or some change has impacted the performance)");
     }
 
-    @RepeatedTest(1)
+    @RepeatedTest(10)
+    public void oneBigObjectToJson() {
+        long   t0;
+        long   dt;
+        String json1;
+        Object copy1;
+        String json2;
+        Object copy2;
+        long   chars;
+        do {
+            Object original = randomObject(14);
+            t0    = System.currentTimeMillis();
+            json1 = Json.toJson(original);
+            copy1 = Json.fromJson(json1);
+            json2 = Json.toJson(copy1);
+            copy2 = Json.fromJson(json2);
+            chars = json1.length();
+            dt    = System.currentTimeMillis() - t0;
+
+            assertEquals(copy1, copy2);
+            assertEquals(json1, json2);
+        } while (dt < 100); // the random object can be so small that the time is too low for proper measuring... so just try again
+
+        double mbps = (1000.0 * chars) / (1024.0 * 1024.0 * dt);
+        System.err.printf("oneBigObjectToJson-test:        %7.2f Mb/s json (handling %5.1f Mb)\n", mbps, chars / (1024.0 * 1024.0));
+        assertTrue(2.0 < mbps, "<2 Mb/s (you either have a very slow machine or some change has impacted the performance)");
+    }
+
+    @RepeatedTest(4)
     public void manySmallObjectsToJson() {
         long t0    = System.currentTimeMillis();
         long chars = 0;
         int  i     = 0;
-        while (System.currentTimeMillis() < t0 + 20_000) {
-
+        while (System.currentTimeMillis() < t0 + 5_000) {
             Object original = randomObject(5);
             String json1    = Json.toJson(original);
             Object copy1    = Json.fromJson(json1);
@@ -78,9 +88,10 @@ public class JsonRandomTests {
             chars += json1.length();
             i++;
         }
-        long   dt  = System.currentTimeMillis() - t0;
-        double mps = (1000.0 * chars) / (1024.0 * 1024.0 * dt);
-        System.err.printf("handled    %7.2f Mb/s json in %6d runs in %d ms\n", mps, i, dt);
+        long   dt   = System.currentTimeMillis() - t0;
+        double mbps = (1000.0 * chars) / (1024.0 * 1024.0 * dt);
+        System.err.printf("manySmallObjectsToJson-test:    %7.2f Mb/s json (in %6d runs in %d ms)\n", mbps, i, dt);
+        assertTrue(1.0 < mbps, "<1 Mb/s (you either have a very slow machine or some change has impacted the performance)");
     }
 
     private static final Random random = new Random(4711);
@@ -120,7 +131,7 @@ public class JsonRandomTests {
             }
             return l;
         }
-        throw new Error("huh?");
+        throw new RuntimeException("huh?");
     }
 
     private static String randomString() {
