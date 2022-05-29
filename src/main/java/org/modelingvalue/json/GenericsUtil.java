@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -52,7 +53,7 @@ public class GenericsUtil {
         Type getSubType(Object key);
     }
 
-    public static TypeInfo makeTypeInfo(Type type, boolean ignoreSFOs) {
+    public static TypeInfo makeTypeInfo(Type type, boolean ignoreSFOs, Consumer<TypeInfo> topStackReplacer) {
         Class<?> rawClass = getRawClassOf(type);
 
         if (Map.class.isAssignableFrom(rawClass)) {
@@ -60,11 +61,16 @@ public class GenericsUtil {
         } else if (Collection.class.isAssignableFrom(rawClass)) {
             return new CollectionTypeInfo(rawClass, getElementType(type));
         } else if (rawClass.isArray()) {
-            throw new RuntimeException("Arrays not yet supported: "+type);
+            throw new RuntimeException("Arrays not yet supported: " + type);
         } else if (Object.class.isAssignableFrom(rawClass)) {
-            return new ObjectTypeInfo(rawClass, ignoreSFOs);
+            Method classSelector = findClassSelector(rawClass);
+            if (classSelector != null) {
+                return new SelectorTypeInfo(rawClass, classSelector, ignoreSFOs, topStackReplacer);
+            } else {
+                return new ObjectTypeInfo(rawClass, ignoreSFOs);
+            }
         }
-        throw new IllegalArgumentException("no TypeInfoMap for " + rawClass.getSimpleName() + " possible");
+        throw new IllegalArgumentException("Class not yet supported: " + rawClass.getSimpleName());
     }
 
     public abstract static class BaseTypeInfo implements TypeInfo {
@@ -142,48 +148,69 @@ public class GenericsUtil {
         }
     }
 
+    public static class SelectorTypeInfo extends BaseTypeInfo {
+        private final Method             classSelector;
+        private final boolean            ignoreSFOs;
+        private final Consumer<TypeInfo> topStackReplacer;
+
+        public SelectorTypeInfo(Class<?> clazz, Method classSelector, boolean ignoreSFOs, Consumer<TypeInfo> topStackReplacer) {
+            super(clazz, () -> null, null, null);
+            this.classSelector    = classSelector;
+            this.ignoreSFOs       = ignoreSFOs;
+            this.topStackReplacer = topStackReplacer;
+        }
+
+        @Override
+        public SubSetter getSubSetter(Object key_) {
+            return (o, key, v) -> {
+                assert o == null;
+                assert key == key_;
+                try {
+                    Object clazzObj = classSelector.invoke(null, key, v);
+                    if (!(clazzObj instanceof Class)) {
+                        throw new RuntimeException("problem in class-selector " + classSelector + ", it returned " + clazzObj);
+                    }
+                    Class<?>       clazz       = (Class<?>) clazzObj;
+                    ObjectTypeInfo newTypeInfo = new ObjectTypeInfo(clazz, ignoreSFOs);
+                    topStackReplacer.accept(newTypeInfo);
+                    Object newObject = clazz.getDeclaredConstructor().newInstance();
+                    return newTypeInfo.getFieldInfo(key).subSetter.set(newObject, key, v);
+                } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException |
+                         InstantiationException e) {
+                    throw new RuntimeException("problem in class-selector " + classSelector, e);
+                }
+            };
+        }
+
+        @Override
+        public String toString() {
+            return "SelectorTypeInfo[" + getClazz().getSimpleName() + "]";
+        }
+    }
+
     public static class ObjectTypeInfo extends BaseTypeInfo {
-        public class FieldInfo {
+        public static class FieldInfo {
             public final Type      type;
             public final SubSetter subSetter;
 
-            private FieldInfo(Field f) {
+            private FieldInfo(Field f, boolean ignoreSFOs) {
                 this.type      = f.getGenericType();
                 this.subSetter = CoercingFieldSetter.forField(f, ignoreSFOs);
             }
         }
 
-        private final Method                                classSelector;
-        private final boolean                               ignoreSFOs;
-        private final Map<Class<?>, Map<String, FieldInfo>> fieldInfoMapMap = new HashMap<>();
+        private final Map<String, FieldInfo> fieldInfoMap;
 
         public ObjectTypeInfo(Class<?> clazz, boolean ignoreSFOs) {
             super(clazz, defaultMaker(clazz), null, null);
-            this.classSelector = findClassSelector(clazz);
-            this.ignoreSFOs    = ignoreSFOs;
-            addFieldInfoMapOf(clazz);
+            this.fieldInfoMap = makeFieldInfoMap(clazz, ignoreSFOs);
         }
 
-        private static Method findClassSelector(Class<?> clazz) {
-            return Arrays.stream(clazz.getMethods())
-                    .filter(m -> m.getAnnotation(JsonClassSelector.class) != null)
-                    .filter(m -> Modifier.isStatic(m.getModifiers()))
-                    .filter(m -> Class.class.isAssignableFrom(m.getReturnType()))
-                    .filter(m -> m.getParameterCount() == 2)
-                    .filter(m -> m.getParameterTypes()[0] == String.class)
-                    .findFirst()
-                    .orElse(null);
-        }
-
-        private void addFieldInfoMapOf(Class<?> clazz) {
-            fieldInfoMapMap.computeIfAbsent(clazz, this::makeFieldInfoMap);
-        }
-
-        private Map<String, FieldInfo> makeFieldInfoMap(Class<?> clazz) {
+        private static Map<String, FieldInfo> makeFieldInfoMap(Class<?> clazz, boolean ignoreSFOs) {
             return getAllFields(clazz).stream()
                     .peek(f -> f.setAccessible(true))
                     .filter(f -> !f.isSynthetic() && !Modifier.isFinal(f.getModifiers()) && !Modifier.isStatic(f.getModifiers()))
-                    .collect(Collectors.toMap(GenericsUtil::getFieldNameAnnotation, FieldInfo::new));
+                    .collect(Collectors.toMap(GenericsUtil::getFieldNameAnnotation, f1 -> new FieldInfo(f1, ignoreSFOs)));
         }
 
         private static List<Field> getAllFields(Class<?> type) {
@@ -196,60 +223,50 @@ public class GenericsUtil {
 
         @Override
         public Maker getMaker() {
-            return classSelector == null ? super.getMaker() : () -> null;
+            return super.getMaker();
         }
 
         @Override
         public Type getSubType(Object key) {
-            return getFieldInfo(getClazz(), key).type;
+            return getFieldInfo(key).type;
         }
 
+        @Override
         public SubSetter getSubSetter(Object key) {
-            if (classSelector == null) {
-                return getFieldInfo(getClazz(), key).subSetter;
-            } else {
-                return (o, key_, v) -> {
-                    if (o != null) {
-                        return getFieldInfo(o.getClass(), key).subSetter.set(o, key_, v);
-                    }
-                    try {
-                        Object clazzObj = classSelector.invoke(null, key_, v);
-                        if (!(clazzObj instanceof Class)) {
-                            throw new RuntimeException("problem in class-selector " + classSelector + ", it returned " + clazzObj);
-                        }
-                        Class<?> clazz = (Class<?>) clazzObj;
-                        addFieldInfoMapOf(clazz);
-                        Object newObject = clazz.getDeclaredConstructor().newInstance();
-                        return getFieldInfo(clazz, key).subSetter.set(newObject, key_, v);
-                    } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException |
-                             InstantiationException e) {
-                        throw new RuntimeException("problem in class-selector " + classSelector, e);
-                    }
-                };
-            }
+            return getFieldInfo(key).subSetter;
         }
 
-        private FieldInfo getFieldInfoOrNull(Class<?> clazz, Object key) {
+        private FieldInfo getFieldInfoOrNull(Object key) {
             if (!(key instanceof String)) {
                 throw new RuntimeException("unexpected key type (String expected): " + key.getClass().getSimpleName());
             }
-            return fieldInfoMapMap.get(clazz).get((String) key);
+            return fieldInfoMap.get((String) key);
         }
 
-        private FieldInfo getFieldInfo(Class<?> clazz, Object key) {
-            FieldInfo fieldInfo = getFieldInfoOrNull(clazz, key);
+        private FieldInfo getFieldInfo(Object key) {
+            FieldInfo fieldInfo = getFieldInfoOrNull(key);
             if (fieldInfo == null) {
-                throw new RuntimeException("the type " + clazz.getSimpleName() + " does not have a field " + key);
+                throw new RuntimeException("the type " + getClazz().getSimpleName() + " does not have a field " + key);
             }
             return fieldInfo;
         }
 
         @Override
         public String toString() {
-            int           numMaps  = fieldInfoMapMap.size();
-            List<Integer> mapSizes = fieldInfoMapMap.values().stream().map(Map::size).collect(Collectors.toList());
-            return "ObjectTypeInfo[" + getClazz().getSimpleName() + " with " + numMaps + " subs with " + mapSizes + " fields]";
+            int numMaps = fieldInfoMap.size();
+            return "ObjectTypeInfo[" + getClazz().getSimpleName() + " with " + numMaps + " fields]";
         }
+    }
+
+    private static Method findClassSelector(Class<?> clazz) {
+        return Arrays.stream(clazz.getMethods())
+                .filter(m -> m.getAnnotation(JsonClassSelector.class) != null)
+                .filter(m -> Modifier.isStatic(m.getModifiers()))
+                .filter(m -> Class.class.isAssignableFrom(m.getReturnType()))
+                .filter(m -> m.getParameterCount() == 2)
+                .filter(m -> m.getParameterTypes()[0] == String.class)
+                .findFirst()
+                .orElse(null);
     }
 
     private static String getFieldNameAnnotation(Field f) {
@@ -663,15 +680,15 @@ public class GenericsUtil {
             SubSetter booleanFieldSetter = null;
             SubSetter stringFieldSetter  = null;
             if (!ignoreSFO) {
-                longFieldSetter    = makeConstructorSubSetter(longFieldSetter, f, long.class, x -> (long) x);
+                longFieldSetter    = makeConstructorSubSetter(null, f, long.class, x -> (long) x);
                 longFieldSetter    = makeConstructorSubSetter(longFieldSetter, f, int.class, x -> (int) (long) x);
                 longFieldSetter    = makeConstructorSubSetter(longFieldSetter, f, short.class, x -> (short) (long) x);
                 longFieldSetter    = makeConstructorSubSetter(longFieldSetter, f, byte.class, x -> (byte) (long) x);
                 longFieldSetter    = makeConstructorSubSetter(longFieldSetter, f, char.class, x -> (char) (long) x);
-                doubleFieldSetter  = makeConstructorSubSetter(doubleFieldSetter, f, double.class, x -> (double) x);
+                doubleFieldSetter  = makeConstructorSubSetter(null, f, double.class, x -> (double) x);
                 doubleFieldSetter  = makeConstructorSubSetter(doubleFieldSetter, f, float.class, x -> (float) (double) x);
-                booleanFieldSetter = makeConstructorSubSetter(booleanFieldSetter, f, boolean.class, x -> (boolean) x);
-                stringFieldSetter  = makeConstructorSubSetter(stringFieldSetter, f, String.class, x -> (String) x);
+                booleanFieldSetter = makeConstructorSubSetter(null, f, boolean.class, x -> (boolean) x);
+                stringFieldSetter  = makeConstructorSubSetter(null, f, String.class, x -> (String) x);
             }
 
             return new CoercingFieldSetter("other field " + f.getName(),

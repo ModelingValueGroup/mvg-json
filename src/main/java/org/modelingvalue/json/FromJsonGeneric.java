@@ -23,6 +23,7 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
+import java.util.function.Consumer;
 
 public class FromJsonGeneric extends FromJsonBase<Object, Object> {
     @SuppressWarnings("unchecked")
@@ -30,9 +31,13 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
         return (T) new FromJsonGeneric(t, s).parse();
     }
 
-    private final Stack<TypeInfo>     typeInfoStack = new Stack<>();
-    private final Map<Type, TypeInfo> typeInfoMap   = new HashMap<>();
+    private final Stack<TypeInfo>     typeInfoStack    = new Stack<>();
+    private final Map<Type, TypeInfo> typeInfoMap      = new HashMap<>();
     private       boolean             ignoreSFOs;
+    private final Consumer<TypeInfo>  topStackReplacer = replacement -> {
+        typeInfoStack.pop();
+        typeInfoStack.push(replacement);
+    };
 
     public FromJsonGeneric(Type t, String input) {
         super(input);
@@ -45,7 +50,7 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
     }
 
     private void pushType(Type subType) {
-        TypeInfo typeInfo = typeInfoMap.computeIfAbsent(subType, t -> GenericsUtil.makeTypeInfo(t, ignoreSFOs));
+        TypeInfo typeInfo = typeInfoMap.computeIfAbsent(subType, t -> GenericsUtil.makeTypeInfo(t, ignoreSFOs, topStackReplacer));
         typeInfoStack.push(typeInfo);
     }
 

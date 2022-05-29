@@ -249,6 +249,16 @@ public class JsonTests {
     @Test
     public void objectFromJson() {
         String json_1 = "{" +
+                        "\"anAbstract\":{" +
+                        "    \"$type\":\"org.modelingvalue.json.JsonTests$XXX# woef\"," +
+                        "    \"field\":5555," +
+                        "    \"shared_field\":4715," +
+                        "    \"subAbstract\":{" +
+                        "        \"$type\":\"org.modelingvalue.json.JsonTests$YYY# subsubsub\"," +
+                        "        \"field\":666," +
+                        "        \"shared_field\":4716" +
+                        "    }" +
+                        "}," +
                         // TODO
                         // "\"arrayOfAbstract\":[" +
                         // "    {\"$type\":\"org.modelingvalue.json.JsonTests$XXX# burp\",\"field\":3333,\"shared_field\":4713}," +
@@ -425,6 +435,7 @@ public class JsonTests {
 
     public static class XXX extends Abstract {
         int field;
+        Abstract subAbstract;
     }
 
     public static class YYY extends Abstract {
@@ -455,7 +466,9 @@ public class JsonTests {
         Set<Short>           ss;
         Map<String, Boolean> ma;
         List<Abstract>       listOfAbstract;
-        // TODO: Abstract[]           arrayOfAbstract;
+        Abstract             anAbstract;
+        //TODO
+        // Abstract[]           arrayOfAbstract;
     }
 
     public List<Serializable> getTestObject1() {
