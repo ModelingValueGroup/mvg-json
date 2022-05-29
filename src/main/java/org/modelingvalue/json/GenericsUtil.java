@@ -59,6 +59,8 @@ public class GenericsUtil {
             return new MapTypeInfo(rawClass, getElementType(type));
         } else if (Collection.class.isAssignableFrom(rawClass)) {
             return new CollectionTypeInfo(rawClass, getElementType(type));
+        } else if (rawClass.isArray()) {
+            throw new RuntimeException("Arrays not yet supported: "+type);
         } else if (Object.class.isAssignableFrom(rawClass)) {
             return new ObjectTypeInfo(rawClass, ignoreSFOs);
         }
@@ -181,7 +183,7 @@ public class GenericsUtil {
             return getAllFields(clazz).stream()
                     .peek(f -> f.setAccessible(true))
                     .filter(f -> !f.isSynthetic() && !Modifier.isFinal(f.getModifiers()) && !Modifier.isStatic(f.getModifiers()))
-                    .collect(Collectors.toMap(GenericsUtil::getFieldTag, FieldInfo::new));
+                    .collect(Collectors.toMap(GenericsUtil::getFieldNameAnnotation, FieldInfo::new));
         }
 
         private static List<Field> getAllFields(Class<?> type) {
@@ -250,7 +252,7 @@ public class GenericsUtil {
         }
     }
 
-    private static String getFieldTag(Field f) {
+    private static String getFieldNameAnnotation(Field f) {
         JsonName nameAnno = f.getAnnotation(JsonName.class);
         return nameAnno == null ? f.getName() : nameAnno.value();
     }
@@ -268,6 +270,7 @@ public class GenericsUtil {
     }
 
     public static Type getElementType(Type type) {
+
         if (type instanceof ParameterizedType) {
             ParameterizedType ptype = (ParameterizedType) type;
             List<Type>        args  = Arrays.stream(ptype.getActualTypeArguments()).collect(Collectors.toList());

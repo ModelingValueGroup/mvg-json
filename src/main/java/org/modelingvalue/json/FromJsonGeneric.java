@@ -36,7 +36,7 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
 
     public FromJsonGeneric(Type t, String input) {
         super(input);
-        typeInfoStack.push(addToTypeInfoMap(t));
+        pushType(t);
     }
 
     @SuppressWarnings("unused")
@@ -44,56 +44,60 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
         ignoreSFOs = b;
     }
 
-    private TypeInfo addToTypeInfoMap(Type type) {
-        return typeInfoMap.computeIfAbsent(type, t -> GenericsUtil.makeTypeInfo(t, ignoreSFOs));
+    private void pushType(Type subType) {
+        TypeInfo typeInfo = typeInfoMap.computeIfAbsent(subType, t -> GenericsUtil.makeTypeInfo(t, ignoreSFOs));
+        typeInfoStack.push(typeInfo);
     }
 
-    ///////////////////////////////////////
-    @Override
-    protected Object makeMap() {
+    private Object makeObject() {
         Stack<Object> path = getPath();
         if (!path.isEmpty()) {
             Type subType = typeInfoStack.peek().getSubType(path.peek());
-            typeInfoStack.push(addToTypeInfoMap(subType));
+            pushType(subType);
         }
         Maker maker = typeInfoStack.peek().getMaker();
         return maker.make();
     }
 
-    @Override
-    protected Object makeMapEntry(Object m, Object key, Object value) {
-        SubSetter subSetter = typeInfoStack.peek().getSubSetter(key);
-        return subSetter.set(m, key, value);
+    private Object makeEntry(Object a, Object value, Object index) {
+        SubSetter subSetter = typeInfoStack.peek().getSubSetter(index);
+        return subSetter.set(a, index, value);
     }
 
-    @Override
-    protected Object closeMap(Object m) {
+    private Object closeObject(Object m) {
         typeInfoStack.pop();
         return m;
     }
 
     ///////////////////////////////////////
     @Override
-    protected Object makeArray() {
-        Stack<Object> path = getPath();
-        if (!path.isEmpty()) {
-            Type subType = typeInfoStack.peek().getSubType(path.peek());
-            typeInfoStack.push(addToTypeInfoMap(subType));
-        }
-        Maker maker = typeInfoStack.peek().getMaker();
-        return maker.make();
+    protected Object makeMap() {
+        return makeObject();
     }
 
     @Override
-    protected Object makeArrayEntry(Object a, Object value) {
-        int       index     = getIndex();
-        SubSetter subSetter = typeInfoStack.peek().getSubSetter(index);
-        return subSetter.set(a, index, value);
+    protected Object makeMapEntry(Object m, Object key, Object value) {
+        return makeEntry(m, value, key);
+    }
+
+    @Override
+    protected Object closeMap(Object m) {
+        return closeObject(m);
+    }
+    ///////////////////////////////////////
+
+    @Override
+    protected Object makeArray() {
+        return makeObject();
+    }
+
+    @Override
+    protected Object makeArrayEntry(Object a, int index, Object value) {
+        return makeEntry(a, value, index);
     }
 
     @Override
     protected Object closeArray(Object l) {
-        typeInfoStack.pop();
-        return l;
+        return closeObject(l);
     }
 }

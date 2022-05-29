@@ -249,6 +249,11 @@ public class JsonTests {
     @Test
     public void objectFromJson() {
         String json_1 = "{" +
+                        // TODO
+                        // "\"arrayOfAbstract\":[" +
+                        // "    {\"$type\":\"org.modelingvalue.json.JsonTests$XXX# burp\",\"field\":3333,\"shared_field\":4713}," +
+                        // "    {\"$type\":\"org.modelingvalue.json.JsonTests$YYY# why?\",\"field\":4444,\"shared_field\":4714}" +
+                        // "],"+
                         "\"b-o\":true," +
                         "\"b_y+t#e\":44," +
                         "\"bool\":true," +
@@ -450,6 +455,7 @@ public class JsonTests {
         Set<Short>           ss;
         Map<String, Boolean> ma;
         List<Abstract>       listOfAbstract;
+        // TODO: Abstract[]           arrayOfAbstract;
     }
 
     public List<Serializable> getTestObject1() {

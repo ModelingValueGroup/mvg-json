@@ -64,7 +64,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         return null;
     }
 
-    protected ARRAY_TYPE makeArrayEntry(ARRAY_TYPE l, Object o) {
+    protected ARRAY_TYPE makeArrayEntry(ARRAY_TYPE l, int index, Object o) {
         return l;
     }
 
@@ -216,7 +216,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
             A:
             while (true) {
                 path.push(index);
-                l = makeArrayEntry(l, parseValue());
+                l = makeArrayEntry(l, getIndex(), parseValue());
                 path.pop();
                 skipWS();
                 switch (current) {

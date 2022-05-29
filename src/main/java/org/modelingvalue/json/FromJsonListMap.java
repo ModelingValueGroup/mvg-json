@@ -46,7 +46,7 @@ public class FromJsonListMap extends FromJsonBase<Iterable<Object>, Map<String, 
     }
 
     @Override
-    protected Iterable<Object> makeArrayEntry(Iterable<Object> l, Object o) {
+    protected Iterable<Object> makeArrayEntry(Iterable<Object> l, int index, Object o) {
         ((List<Object>) l).add(o);
         return l;
     }
