@@ -20,18 +20,21 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public class ToJson {
     private static final String            NULL_STRING                 = "null";
@@ -63,86 +66,135 @@ public class ToJson {
     private       int                      index;
     private       boolean                  ignoreSFOs; // SFO = Single Field Object
     private       boolean                  includeClassNameInIntrospection;
-    private       Function<Object, String> idFunction;
+    private       boolean                  includeIdInIntrospection;
     private final Map<Class<?>, ClassInfo> classInfoMap = new HashMap<>();
-    private       Map<Object, String>      seenBeforeMap;
 
     private class ClassInfo {
+        private abstract class MemberInfo {
+            private final String name;
+
+            private MemberInfo(String name) {
+                this.name = name;
+            }
+
+            abstract Function<Object, Object> getAccesor();
+
+            abstract boolean isId();
+
+            Entry<Object, Object> getEntry(Object o) {
+                return new SimpleEntry<>(name, getAccesor().apply(o));
+            }
+
+            @Override
+            public String toString() {
+                return name;
+            }
+        }
+
+        private class FieldMemberInfo extends MemberInfo {
+            private final Field f;
+
+            private FieldMemberInfo(Field f) {
+                super(GenericsUtil.getFieldName(f));
+                this.f = f;
+            }
+
+            @Override
+            Function<Object, Object> getAccesor() {
+                return o -> {
+                    try {
+                        return f.get(o);
+                    } catch (IllegalAccessException e) {
+                        // just ignore
+                        return null;
+                    }
+                };
+            }
+
+            @Override
+            boolean isId() {
+                return f.getAnnotation(JsonIsId.class) != null;
+            }
+        }
+
+        private class MethodMemberInfo extends MemberInfo {
+            private final Method m;
+
+            private MethodMemberInfo(Method m) {
+                super(GenericsUtil.getMethodName(m));
+                this.m = m;
+            }
+
+            @Override
+            Function<Object, Object> getAccesor() {
+                return o -> {
+                    try {
+                        return m.invoke(o);
+                    } catch (IllegalAccessException | InvocationTargetException e) {
+                        // just ignore
+                        return null;
+                    }
+                };
+            }
+
+            @Override
+            boolean isId() {
+                return m.getAnnotation(JsonIsId.class) != null;
+            }
+        }
+
         private final Class<?>            clazz;
-        private       List<Field>         fields;
-        private final Map<Field, String>  field2name  = new HashMap<>();
-        private       List<Method>        methods;
-        private final Map<Method, String> method2name = new HashMap<>();
+        private final List<MemberInfo>    members       = new ArrayList<>();
+        private final MemberInfo          idField;
+        private final Map<Object, String> seenBeforeMap = new HashMap<>();
 
         private ClassInfo(Class<?> clazz) {
             this.clazz = clazz;
-        }
 
-        private Map<String, Object> getIntrospectionMap(Object o) {
-            Map<String, Object> map = new HashMap<>();
-            if (includeClassNameInIntrospection) {
-                map.put("~className", clazz.getName());
+            Set<String> names = new HashSet<>();
+            for (Class<?> c = clazz; c != Object.class; c = c.getSuperclass()) {
+                Arrays.stream(c.getDeclaredMethods())
+                        .filter(METHOD_INTROSPECTION_FILTER)
+                        .peek(f -> f.setAccessible(true))
+                        .filter(m -> names.add(GenericsUtil.getMethodName(m)))
+                        .forEach(f -> members.add(new MethodMemberInfo(f)));
+                Arrays.stream(c.getDeclaredFields())
+                        .filter(FIELD_INTROSPECTION_FILTER)
+                        .peek(m -> m.setAccessible(true))
+                        .filter(f -> names.add(GenericsUtil.getFieldName(f)))
+                        .forEach(f -> members.add(new FieldMemberInfo(f)));
             }
-            String id = seenBefore(o);
-            if (id != null) {
-                map.put("~id", id);
+            members.sort(Comparator.comparing(m -> m.name));
+            if (includeIdInIntrospection) {
+                idField = members.stream().filter(MemberInfo::isId).findFirst().orElse(null);
+                members.remove(idField);
+                members.add(0, idField);
             } else {
-                putInIntrospectionMap(map, o);
+                idField = null;
             }
-            return map;
         }
 
-        private void putInIntrospectionMap(Map<String, Object> map, Object o) {
-            getFields().forEach(f -> {
-                try {
-                    map.put(getName(f), f.get(o));
-                } catch (IllegalAccessException e) {
-                    // ignore, just leave out this element
-                }
-            });
-            getMethods().forEach(m -> {
-                try {
-                    map.put(getName(m), m.invoke(o));
-                } catch (IllegalAccessException | InvocationTargetException e) {
-                    // ignore, just leave out this element
-                }
-            });
+        private String seenBeforeId(Object o) {
+            return idField != null ? idField.getAccesor().apply(o).toString() : null;
         }
 
-        private List<Field> getFields() {
-            if (fields == null) {
-                fields = new ArrayList<>();
-                for (Class<?> c = clazz; c != Object.class; c = c.getSuperclass()) {
-                    fields.addAll(Arrays.asList(c.getDeclaredFields()));
+        private boolean seenBefore(Object o) {
+            if (idField != null) {
+                if (seenBeforeMap.containsKey(o)) {
+                    return true;
                 }
-                fields.removeIf(FIELD_INTROSPECTION_FILTER.negate());
-                fields.forEach(f -> f.setAccessible(true));
-                Collections.reverse(fields);
+                seenBeforeMap.put(o, seenBeforeId(o));
             }
-            return fields;
+            return false;
         }
 
-        private List<Method> getMethods() {
-            if (methods == null) {
-                methods = new ArrayList<>();
-                for (Class<?> c = clazz; c != Object.class; c = c.getSuperclass()) {
-                    methods.addAll(Arrays.asList(c.getDeclaredMethods()));
-                }
-                methods.removeIf(METHOD_INTROSPECTION_FILTER.negate());
-                methods.forEach(m -> m.setAccessible(true));
+        public Iterator<Entry<Object, Object>> getIntrospectionIterator(Object o) {
+            if (seenBefore(o)) {
+                return Stream.of(idField.getEntry(o)).iterator();
+            } else {
+                Stream<SimpleEntry<Object, Object>> classStream = includeClassNameInIntrospection ? Stream.of(new SimpleEntry<>("~className", clazz.getName())) : Stream.empty();
+                return Stream.concat(classStream, members.stream().map(m -> m.getEntry(o))).iterator();
             }
-            return methods;
-        }
-
-        private String getName(Field f) {
-            return field2name.computeIfAbsent(f, ff -> {
-                JsonName nameAnnotation = f.getAnnotation(JsonName.class);
-                return nameAnnotation == null ? f.getName() : nameAnnotation.value();
-            });
-        }
-
-        private String getName(Method m) {
-            return method2name.computeIfAbsent(m, mm -> m.getName().replaceAll("^(get|is)([A-Z]).*", "$2").toLowerCase() + m.getName().replaceAll("^(get|is)[A-Z]", ""));
         }
     }
 
@@ -151,18 +203,21 @@ public class ToJson {
     }
 
     @SuppressWarnings("unused")
-    public void setIgnoreSFOs(boolean b) {
+    public ToJson withIgnoreSFOs(boolean b) {
         ignoreSFOs = b;
+        return this;
     }
 
     @SuppressWarnings("unused")
-    public void setIncludeClassNameInIntrospection(boolean b) {
+    public ToJson withIncludeClassNameInIntrospection(boolean b) {
         includeClassNameInIntrospection = b;
+        return this;
     }
 
-    public void setIdFunction(Function<Object, String> idFunction) {
-        this.idFunction = idFunction;
-        seenBeforeMap   = idFunction == null ? null : seenBeforeMap == null ? new HashMap<>() : seenBeforeMap;
+    @SuppressWarnings("unused")
+    public ToJson withIncludeIdInIntrospection(boolean b) {
+        includeIdInIntrospection = b;
+        return this;
     }
 
     @SuppressWarnings("unused")
@@ -195,8 +250,11 @@ public class ToJson {
 
     @SuppressWarnings("unchecked")
     protected Iterator<Entry<Object, Object>> getMapIterator(Object o) {
-        //noinspection unchecked
-        return ((Map<Object, Object>) o).entrySet().stream().sorted(Comparator.comparing(e -> e.getKey().toString())).iterator();
+        return ((Map<Object, Object>) o)
+                .entrySet()
+                .stream()
+                .sorted(Comparator.comparing(e -> e.getKey().toString()))
+                .iterator();
     }
 
     protected boolean isIterableType(Object o) {
@@ -207,11 +265,6 @@ public class ToJson {
     protected Iterator<Object> getArrayIterator(Object o) {
         //noinspection unchecked
         return ((Iterable<Object>) o).iterator();
-    }
-
-    protected Map<String, Object> getIntrospectionMap(Object o) {
-        Class<?> clazz = o.getClass();
-        return classInfoMap.computeIfAbsent(clazz, t -> new ClassInfo(clazz)).getIntrospectionMap(o);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -266,7 +319,7 @@ public class ToJson {
         } else if (o instanceof Object[]) {
             jsonFromObjectArray((Object[]) o);
         } else {
-            jsonFromMap(getIntrospectionMap(o));
+            jsonFromIntrospection(o);
         }
     }
 
@@ -297,40 +350,27 @@ public class ToJson {
     }
 
     protected void jsonFromMap(Object o) {
-        b.append('{');
-        Object id = seenBefore(o);
-        if (id != null) {
-            b.append("\"$id\":\"").append(id);
-        } else {
-            Iterator<Entry<Object, Object>> it  = getMapIterator(o);
-            String                          sep = "";
-            level++;
-            int savedIndex = index;
-            index = 0;
-            while (it.hasNext()) {
-                Entry<Object, Object> e = it.next();
-                b.append(sep);
-                sep = ",";
-                jsonFromString(stringFromKey(e.getKey()));
-                b.append(":");
-                jsonFromAny(e.getValue());
-                index++;
-            }
-            index = savedIndex;
-            level--;
-        }
-        b.append('}');
+        jsonFromIterator(getMapIterator(o));
     }
 
-    private String seenBefore(Object o) {
-        if (seenBeforeMap != null) {
-            if (seenBeforeMap.containsKey(o)) {
-                return seenBeforeMap.get(o);
-            } else {
-                seenBeforeMap.put(o, idFunction.apply(o));
-            }
+    private void jsonFromIterator(Iterator<Entry<Object, Object>> it) {
+        b.append('{');
+        String sep = "";
+        level++;
+        int savedIndex = index;
+        index = 0;
+        while (it.hasNext()) {
+            Entry<Object, Object> e = it.next();
+            b.append(sep);
+            sep = ",";
+            jsonFromString(stringFromKey(e.getKey()));
+            b.append(":");
+            jsonFromAny(e.getValue());
+            index++;
         }
-        return null;
+        index = savedIndex;
+        level--;
+        b.append('}');
     }
 
     protected String stringFromKey(Object key) {
@@ -404,6 +444,10 @@ public class ToJson {
         index = savedIndex;
         level--;
         b.append(']');
+    }
+
+    private void jsonFromIntrospection(Object o) {
+        jsonFromIterator(classInfoMap.computeIfAbsent(o.getClass(), ClassInfo::new).getIntrospectionIterator(o));
     }
 
     protected void jsonFromDoubleArray(double[] o) {

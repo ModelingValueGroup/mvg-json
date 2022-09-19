@@ -15,7 +15,6 @@
 
 package org.modelingvalue.json;
 
-import org.modelingvalue.json.GenericsUtil.Maker;
 import org.modelingvalue.json.GenericsUtil.SubSetter;
 import org.modelingvalue.json.GenericsUtil.TypeInfo;
 
@@ -38,6 +37,7 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
         typeInfoStack.pop();
         typeInfoStack.push(replacement);
     };
+    private final Map<Object, Object> id2objectMap     = new HashMap<>();
 
     public FromJsonGeneric(Type t, String input) {
         super(input);
@@ -60,13 +60,7 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
             Type subType = typeInfoStack.peek().getSubType(path.peek());
             pushType(subType);
         }
-        Maker maker = typeInfoStack.peek().getMaker();
-        return maker.make();
-    }
-
-    private Object makeEntry(Object a, Object value, Object index) {
-        SubSetter subSetter = typeInfoStack.peek().getSubSetter(index);
-        return subSetter.set(a, index, value);
+        return typeInfoStack.peek().getMaker().make();
     }
 
     private Object closeObject(Object m) {
@@ -82,7 +76,13 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
 
     @Override
     protected Object makeMapEntry(Object m, Object key, Object value) {
-        return makeEntry(m, value, key);
+        TypeInfo typeInfo = typeInfoStack.peek();
+        if (typeInfo.isIdField(key.toString())) {
+            final Object mm = m;
+            m = id2objectMap.computeIfAbsent(value, __ -> mm);
+        }
+        SubSetter subSetter = typeInfo.getSubSetter(key);
+        return subSetter.set(m, key, value);
     }
 
     @Override
@@ -98,7 +98,8 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
 
     @Override
     protected Object makeArrayEntry(Object a, int index, Object value) {
-        return makeEntry(a, value, index);
+        SubSetter subSetter = typeInfoStack.peek().getSubSetter(index);
+        return subSetter.set(a, index, value);
     }
 
     @Override

@@ -51,6 +51,8 @@ public class GenericsUtil {
         SubSetter getSubSetter(Object key);
 
         Type getSubType(Object key);
+
+        boolean isIdField(String name);
     }
 
     public static TypeInfo makeTypeInfo(Type type, boolean ignoreSFOs, Consumer<TypeInfo> topStackReplacer) {
@@ -124,6 +126,10 @@ public class GenericsUtil {
                 }
             };
         }
+
+        public boolean isIdField(String name) {
+            return false;
+        }
     }
 
     public static class CollectionTypeInfo extends BaseTypeInfo {
@@ -190,27 +196,38 @@ public class GenericsUtil {
 
     public static class ObjectTypeInfo extends BaseTypeInfo {
         public static class FieldInfo {
+            public final Field     field;
             public final Type      type;
             public final SubSetter subSetter;
+            public final boolean   isId;
 
             private FieldInfo(Field f, boolean ignoreSFOs) {
-                this.type      = f.getGenericType();
-                this.subSetter = CoercingFieldSetter.forField(f, ignoreSFOs);
+                field     = f;
+                type      = f.getGenericType();
+                subSetter = CoercingFieldSetter.forField(f, ignoreSFOs);
+                isId      = f.getAnnotation(JsonIsId.class) != null;
             }
+
         }
 
         private final Map<String, FieldInfo> fieldInfoMap;
+        private final String                 idFieldName;
 
         public ObjectTypeInfo(Class<?> clazz, boolean ignoreSFOs) {
             super(clazz, defaultMaker(clazz), null, null);
             this.fieldInfoMap = makeFieldInfoMap(clazz, ignoreSFOs);
+            this.idFieldName  = getIdField(fieldInfoMap);
         }
 
         private static Map<String, FieldInfo> makeFieldInfoMap(Class<?> clazz, boolean ignoreSFOs) {
             return getAllFields(clazz).stream()
                     .peek(f -> f.setAccessible(true))
                     .filter(f -> !f.isSynthetic() && !Modifier.isFinal(f.getModifiers()) && !Modifier.isStatic(f.getModifiers()))
-                    .collect(Collectors.toMap(GenericsUtil::getFieldNameAnnotation, f1 -> new FieldInfo(f1, ignoreSFOs)));
+                    .collect(Collectors.toMap(GenericsUtil::getFieldName, f1 -> new FieldInfo(f1, ignoreSFOs)));
+        }
+
+        private String getIdField(Map<String, FieldInfo> map) {
+            return map.values().stream().filter(f -> f.isId).findAny().map(f -> getFieldName(f.field)).orElse(null);
         }
 
         private static List<Field> getAllFields(Class<?> type) {
@@ -256,6 +273,10 @@ public class GenericsUtil {
             int numMaps = fieldInfoMap.size();
             return "ObjectTypeInfo[" + getClazz().getSimpleName() + " with " + numMaps + " fields]";
         }
+
+        public boolean isIdField(String name) {
+            return idFieldName != null && idFieldName.equals(name);
+        }
     }
 
     private static Method findClassSelector(Class<?> clazz) {
@@ -269,9 +290,13 @@ public class GenericsUtil {
                 .orElse(null);
     }
 
-    private static String getFieldNameAnnotation(Field f) {
+    public static String getFieldName(Field f) {
         JsonName nameAnno = f.getAnnotation(JsonName.class);
         return nameAnno == null ? f.getName() : nameAnno.value();
+    }
+
+    public static String getMethodName(Method m) {
+        return m.getName().replaceAll("^(get|is)([A-Z]).*", "$2").toLowerCase() + m.getName().replaceAll("^(get|is)[A-Z]", "");
     }
 
     public static Class<?> getRawClassOf(Type type) {
