@@ -248,6 +248,10 @@ public class ToJson {
         return o instanceof Map;
     }
 
+    protected Iterator<Entry<Object, Object>> getIntrospectionIterator(Object o) {
+        return classInfoMap.computeIfAbsent(o.getClass(), ClassInfo::new).getIntrospectionIterator(o);
+    }
+
     @SuppressWarnings("unchecked")
     protected Iterator<Entry<Object, Object>> getMapIterator(Object o) {
         return ((Map<Object, Object>) o)
@@ -257,14 +261,13 @@ public class ToJson {
                 .iterator();
     }
 
-    protected boolean isIterableType(Object o) {
-        return o instanceof Iterable;
-    }
-
     @SuppressWarnings("unchecked")
     protected Iterator<Object> getArrayIterator(Object o) {
-        //noinspection unchecked
         return ((Iterable<Object>) o).iterator();
+    }
+
+    protected boolean isIterableType(Object o) {
+        return o instanceof Iterable;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -447,7 +450,7 @@ public class ToJson {
     }
 
     private void jsonFromIntrospection(Object o) {
-        jsonFromIterator(classInfoMap.computeIfAbsent(o.getClass(), ClassInfo::new).getIntrospectionIterator(o));
+        jsonFromIterator(getIntrospectionIterator(o));
     }
 
     protected void jsonFromDoubleArray(double[] o) {
