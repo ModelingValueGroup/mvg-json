@@ -24,6 +24,10 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.function.Consumer;
 
+import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.MAY_BE_ID;
+import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.MAY_BE_MORE;
+import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.MAY_NOT_BE_MORE;
+
 public class FromJsonGeneric extends FromJsonBase<Object, Object> {
     @SuppressWarnings("unchecked")
     public static <T> T fromJson(Type t, String s) {
@@ -32,12 +36,18 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
 
     private final Stack<TypeInfo>     typeInfoStack    = new Stack<>();
     private final Map<Type, TypeInfo> typeInfoMap      = new HashMap<>();
-    private       boolean             ignoreSFOs;
     private final Consumer<TypeInfo>  topStackReplacer = replacement -> {
         typeInfoStack.pop();
         typeInfoStack.push(replacement);
     };
     private final Map<Object, Object> id2objectMap     = new HashMap<>();
+    private       boolean             ignoreSFOs;
+
+    enum IdAcceptState {
+        MAY_BE_MORE, MAY_BE_ID, MAY_NOT_BE_MORE
+    }
+
+    private IdAcceptState idAcceptState = MAY_BE_MORE;
 
     public FromJsonGeneric(Type t, String input) {
         super(input);
@@ -71,15 +81,38 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
     ///////////////////////////////////////
     @Override
     protected Object makeMap() {
+        if (idAcceptState == MAY_NOT_BE_MORE) {
+            throw error("id references must be the only field set when referencing a previous object");
+        }
+        idAcceptState = MAY_BE_ID;
         return makeObject();
     }
 
     @Override
     protected Object makeMapEntry(Object m, Object key, Object value) {
         TypeInfo typeInfo = typeInfoStack.peek();
-        if (typeInfo.isIdField(key.toString())) {
-            final Object mm = m;
-            m = id2objectMap.computeIfAbsent(value, __ -> mm);
+        switch (idAcceptState) {
+        case MAY_BE_ID:
+            idAcceptState = MAY_BE_MORE;
+            if (typeInfo.isIdField(key.toString())) {
+                final Object mm = m;
+                m = id2objectMap.computeIfAbsent(value, __ -> mm);
+                if (m != mm) {
+                    idAcceptState = MAY_NOT_BE_MORE;
+                }
+            }
+            break;
+        case MAY_BE_MORE:
+            if (typeInfo.isIdField(key.toString())) {
+                final Object mm = m;
+                m = id2objectMap.computeIfAbsent(value, __ -> mm);
+                if (m != mm) {
+                    throw error("id references must be the only field present when referencing a previous object: found " + key + ": " + value);
+                }
+            }
+            break;
+        case MAY_NOT_BE_MORE:
+            throw error("id references must be the only field present when referencing a previous object: found " + key + ": " + value);
         }
         SubSetter subSetter = typeInfo.getSubSetter(key);
         return subSetter.set(m, key, value);
@@ -87,6 +120,7 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
 
     @Override
     protected Object closeMap(Object m) {
+        idAcceptState = MAY_BE_MORE;
         return closeObject(m);
     }
     ///////////////////////////////////////

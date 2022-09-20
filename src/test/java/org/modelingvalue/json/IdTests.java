@@ -10,7 +10,34 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class IdTests {
-    private static final String EXPECTED_SHARED = /**/
+    private static final String EXPECTED_MINIMAL = /**/
+            /**/"{" +
+            /**//**/"\"id\":\"xxx\"," +
+            /**//**/"\"children\":[]," +
+            /**//**/"\"friend\":{\"id\":\"xxx\"}," +
+            /**//**/"\"parent\":null" +
+            /**/"}";
+    private static final String MINIMAL_OK1      = /**/
+            /**/"{" +
+            /**//**/"\"id\":\"xxx\"," +
+            /**//**/"\"friend\":{\"id\":\"yyy\", \"friend\": {\"id\":\"yyy\"}}" +
+            /**/"}";
+    private static final String MINIMAL_OK2      = /**/
+            /**/"{" +
+            /**//**/"\"id\":\"xxx\"," +
+            /**//**/"\"friend\":{\"id\":\"yyy\", \"friend\": {\"id\":\"zzz\"}}" +
+            /**/"}";
+    private static final String MINIMAL_BAD1     = /**/
+            /**/"{" +
+            /**//**/"\"id\":\"xxx\"," +
+            /**//**/"\"friend\":{\"id\":\"xxx\", \"friend\": {\"id\":\"yyy\"}}" +
+            /**/"}";
+    private static final String MINIMAL_BAD2     = /**/
+            /**/"{" +
+            /**//**/"\"id\":\"xxx\"," +
+            /**//**/"\"friend\":{\"friend\": {\"id\":\"yyy\"},\"id\":\"xxx\"}" +
+            /**/"}";
+    private static final String EXPECTED_SHARED  = /**/
             /**/"{" +
             /**//**/"\"id\":\"dad\"," +
             /**//**/"\"children\":" +
@@ -25,7 +52,7 @@ public class IdTests {
             /**//**/"\"friend\":{\"id\":\"child\"}," +
             /**//**/"\"parent\":null" +
             /**/"}";
-    private static final String EXPECTED_CYCLIC = /**/
+    private static final String EXPECTED_CYCLIC  = /**/
             /**/"{" +
             /**//**/"\"id\":\"jaap\"," +
             /**//**/"\"children\":" +
@@ -66,6 +93,39 @@ public class IdTests {
             /**//**/"\"friend\":{\"id\":\"emma\"}," +
             /**//**/"\"parent\":null" +
             /**/"}";
+
+    @Test
+    public void minimalTest() {
+        A testObject = makeMinimalModel();
+
+        String rendered = new ToJson(testObject).withIncludeIdInIntrospection(true).render();
+        Assertions.assertEquals(EXPECTED_MINIMAL, rendered);
+
+        A parsed = (A) new FromJsonGeneric(A.class, rendered).parse();
+        Assertions.assertEquals(testObject.fingerprint(new Fingerprinter()), parsed.fingerprint(new Fingerprinter()));
+    }
+
+    @Test
+    public void ok1Test() {
+        new FromJsonGeneric(A.class, MINIMAL_OK1).parse();
+    }
+
+    @Test
+    public void ok2Test() {
+        new FromJsonGeneric(A.class, MINIMAL_OK2).parse();
+    }
+
+    @Test
+    public void bad1Test() {
+        IllegalArgumentException iae = Assertions.assertThrowsExactly(IllegalArgumentException.class, () -> new FromJsonGeneric(A.class, MINIMAL_BAD1).parse());
+        Assertions.assertEquals("json syntax error: id references must be the only field set when referencing a previous object (at 44: [d\":\"xxx\", \"friend\": <{>\"id\":\"yyy\"}}}])", iae.getMessage());
+    }
+
+    @Test
+    public void bad2Test() {
+        IllegalArgumentException iae = Assertions.assertThrowsExactly(IllegalArgumentException.class, () -> new FromJsonGeneric(A.class, MINIMAL_BAD2).parse());
+        Assertions.assertEquals("json syntax error: id references must be the only field present when referencing a previous object: found id: xxx (at 55: [d\":\"yyy\"},\"id\":\"xxx\"<}>}])", iae.getMessage());
+    }
 
     @Test
     public void sharedTest() {
@@ -150,6 +210,12 @@ public class IdTests {
         public String get() {
             return num2a.keySet().stream().sorted().map(n -> String.format("%03d_%s", n, num2a.get(n).id)).collect(Collectors.joining("\n"));
         }
+    }
+
+    private A makeMinimalModel() {
+        A xxx = new A("xxx");
+        xxx.friend = xxx;
+        return xxx;
     }
 
     private A makeSharedModel() {
