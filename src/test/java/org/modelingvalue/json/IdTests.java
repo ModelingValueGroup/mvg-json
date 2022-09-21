@@ -17,6 +17,7 @@ package org.modelingvalue.json;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.modelingvalue.json.IdTests.A.Fingerprinter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -111,56 +112,71 @@ public class IdTests {
 
     @Test
     public void minimalTest() {
-        A testObject = makeMinimalModel();
+        A testObject = A.makeMinimalModel();
 
-        String rendered = new ToJson(testObject).withIncludeIdInIntrospection(true).render();
+        String rendered = new ToJson(testObject).render();
         Assertions.assertEquals(EXPECTED_MINIMAL, rendered);
 
-        A parsed = (A) new FromJsonGeneric(A.class, rendered).parse();
+        A parsed = FromJsonGeneric.fromJson(A.class, rendered);
         Assertions.assertEquals(testObject.fingerprint(new Fingerprinter()), parsed.fingerprint(new Fingerprinter()));
     }
 
     @Test
+    public void minimalBTest() throws NoSuchFieldException {
+        B testObject = B.makeMinimalModel();
+
+        Assertions.assertThrows(StackOverflowError.class, () -> new ToJson(testObject).render());
+
+        Config config = new Config();
+        config.addJsonIdAnnotation(B.class.getDeclaredField("id"));
+        String rendered = new ToJson(testObject, config).render();
+        Assertions.assertEquals(EXPECTED_MINIMAL, rendered);
+
+        B parsed = FromJsonGeneric.fromJson(B.class, rendered);
+        Assertions.assertEquals(testObject.fingerprint(new B.Fingerprinter()), parsed.fingerprint(new B.Fingerprinter()));
+    }
+
+    @Test
     public void ok1Test() {
-        new FromJsonGeneric(A.class, MINIMAL_OK1).parse();
+        FromJsonGeneric.fromJson(A.class, MINIMAL_OK1);
     }
 
     @Test
     public void ok2Test() {
-        new FromJsonGeneric(A.class, MINIMAL_OK2).parse();
+        FromJsonGeneric.fromJson(A.class, MINIMAL_OK2);
     }
 
     @Test
     public void bad1Test() {
-        IllegalArgumentException iae = Assertions.assertThrowsExactly(IllegalArgumentException.class, () -> new FromJsonGeneric(A.class, MINIMAL_BAD1).parse());
+        IllegalArgumentException iae = Assertions.assertThrowsExactly(IllegalArgumentException.class, () -> FromJsonGeneric.fromJson(A.class, MINIMAL_BAD1));
         Assertions.assertEquals("json syntax error: id references must be the only field set when referencing a previous object (at 44: [d\":\"xxx\", \"friend\": <{>\"id\":\"yyy\"}}}])", iae.getMessage());
     }
 
     @Test
     public void bad2Test() {
-        IllegalArgumentException iae = Assertions.assertThrowsExactly(IllegalArgumentException.class, () -> new FromJsonGeneric(A.class, MINIMAL_BAD2).parse());
+        IllegalArgumentException iae = Assertions.assertThrowsExactly(IllegalArgumentException.class, () -> FromJsonGeneric.fromJson(A.class, MINIMAL_BAD2));
         Assertions.assertEquals("json syntax error: id references must be the only field present when referencing a previous object: found id: xxx (at 55: [d\":\"yyy\"},\"id\":\"xxx\"<}>}])", iae.getMessage());
     }
 
     @Test
     public void sharedTest() {
-        A testObject = makeSharedModel();
+        A testObject = A.makeSharedModel();
 
-        String rendered = new ToJson(testObject).withIncludeIdInIntrospection(true).render();
+        String rendered = new ToJson(testObject).render();
         Assertions.assertEquals(EXPECTED_SHARED, rendered);
 
-        A parsed = (A) new FromJsonGeneric(A.class, rendered).parse();
+        A parsed = FromJsonGeneric.fromJson(A.class, rendered);
         Assertions.assertEquals(testObject.fingerprint(new Fingerprinter()), parsed.fingerprint(new Fingerprinter()));
     }
 
     @Test
     public void cyclicTest() {
-        A testObject = makeCyclicModel();
+        A testObject = A.makeCyclicModel();
 
-        String rendered = new ToJson(testObject).withIncludeIdInIntrospection(true).render();
+        String rendered = new ToJson(testObject).render();
         Assertions.assertEquals(EXPECTED_CYCLIC, rendered);
 
-        A parsed = (A) new FromJsonGeneric(A.class, rendered).parse();
+        A parsed = FromJsonGeneric.fromJson(A.class, rendered);
         Assertions.assertEquals(testObject.fingerprint(new Fingerprinter()), parsed.fingerprint(new Fingerprinter()));
 
         parsed.children.get(0).children.get(2).friend = new A("renee");
@@ -168,8 +184,9 @@ public class IdTests {
 
     }
 
+    @SuppressWarnings("CanBeFinal")
     public static class A {
-        @JsonIsId
+        @JsonId
         String id;
         A       parent;
         List<A> children = new ArrayList<>();
@@ -181,6 +198,46 @@ public class IdTests {
 
         public A(String id) {
             this.id = id;
+        }
+
+        private static A makeMinimalModel() {
+            A xxx = new A("xxx");
+            xxx.friend = xxx;
+            return xxx;
+        }
+
+        private static A makeSharedModel() {
+            A dad   = new A("dad");
+            A child = new A("child");
+
+            dad.addChild(child);
+            dad.friend   = child;
+            child.friend = dad;
+
+            return dad;
+        }
+
+        private static A makeCyclicModel() {
+            A a  = new A("jaap");
+            A b1 = new A("frits");
+            A b2 = new A("emma");
+            A c1 = new A("boris");
+            A c2 = new A("renee");
+            A c3 = new A("evert");
+
+            a.addChild(b1);
+            a.addChild(b2);
+            b1.addChild(c1);
+            b1.addChild(c2);
+            b1.addChild(c3);
+
+            a.friend  = b2;
+            b1.friend = a;
+            b2.friend = b1;
+            c1.friend = a;
+            c3.friend = c2;
+
+            return a;
         }
 
         public void addChild(A child) {
@@ -199,71 +256,92 @@ public class IdTests {
             children.forEach(c -> c.fingerprint(fp));
             return fp.get();
         }
-    }
 
-    private static class Fingerprinter {
-        int             num;
-        Map<A, Integer> a2num = new HashMap<>();
-        Map<Integer, A> num2a = new HashMap<>();
+        public static class Fingerprinter {
+            int             num;
+            Map<A, Integer> a2num = new HashMap<>();
+            Map<Integer, A> num2a = new HashMap<>();
 
-        private void add(A o) {
-            num2a.computeIfAbsent(a2num.computeIfAbsent(o, __1 -> num++), __ -> o);
-        }
+            private void add(A o) {
+                num2a.computeIfAbsent(a2num.computeIfAbsent(o, __1 -> num++), __ -> o);
+            }
 
-        void add(A... oo) {
-            for (A o : oo) {
-                add(o);
+            void add(A... oo) {
+                for (A o : oo) {
+                    add(o);
+                }
+            }
+
+            void add(List<A> l) {
+                for (A o : l) {
+                    add(o);
+                }
+            }
+
+            public String get() {
+                return num2a.keySet().stream().sorted().map(n -> String.format("%03d_%s", n, num2a.get(n).id)).collect(Collectors.joining("\n"));
             }
         }
+    }
 
-        void add(List<A> l) {
-            for (A o : l) {
-                add(o);
+    @SuppressWarnings("CanBeFinal")
+    public static class B {
+        String  id;
+        B       parent;
+        List<B> children = new ArrayList<>();
+        B       friend;
+
+        @SuppressWarnings("unused")
+        public B() {
+        }
+
+        public B(String id) {
+            this.id = id;
+        }
+
+        private static B makeMinimalModel() {
+            B xxx = new B("xxx");
+            xxx.friend = xxx;
+            return xxx;
+        }
+
+        @Override
+        public String toString() {
+            return id + children.stream().map(a -> a.id).collect(Collectors.toList()) + (friend == null ? "<null>" : friend.id);
+        }
+
+        public String fingerprint(Fingerprinter fp) {
+            fp.add(parent, friend);
+            fp.add(children);
+            children.forEach(c -> c.fingerprint(fp));
+            return fp.get();
+        }
+
+        public static class Fingerprinter {
+            int             num;
+            Map<B, Integer> a2num = new HashMap<>();
+            Map<Integer, B> num2a = new HashMap<>();
+
+            private void add(B o) {
+                num2a.computeIfAbsent(a2num.computeIfAbsent(o, __1 -> num++), __ -> o);
+            }
+
+            void add(B... oo) {
+                for (B o : oo) {
+                    add(o);
+                }
+            }
+
+            void add(List<B> l) {
+                for (B o : l) {
+                    add(o);
+                }
+            }
+
+            public String get() {
+                return num2a.keySet().stream().sorted().map(n -> String.format("%03d_%s", n, num2a.get(n).id)).collect(Collectors.joining("\n"));
             }
         }
-
-        public String get() {
-            return num2a.keySet().stream().sorted().map(n -> String.format("%03d_%s", n, num2a.get(n).id)).collect(Collectors.joining("\n"));
-        }
     }
 
-    private A makeMinimalModel() {
-        A xxx = new A("xxx");
-        xxx.friend = xxx;
-        return xxx;
-    }
-
-    private A makeSharedModel() {
-        A dad   = new A("dad");
-        A child = new A("child");
-
-        dad.addChild(child);
-        dad.friend   = child;
-        child.friend = dad;
-
-        return dad;
-    }
-
-    private A makeCyclicModel() {
-        A a  = new A("jaap");
-        A b1 = new A("frits");
-        A b2 = new A("emma");
-        A c1 = new A("boris");
-        A c2 = new A("renee");
-        A c3 = new A("evert");
-
-        a.addChild(b1);
-        a.addChild(b2);
-        b1.addChild(c1);
-        b1.addChild(c2);
-        b1.addChild(c3);
-
-        a.friend  = b2;
-        b1.friend = a;
-        b2.friend = b1;
-        c1.friend = a;
-        c3.friend = c2;
-
-        return a;
-    }
 }

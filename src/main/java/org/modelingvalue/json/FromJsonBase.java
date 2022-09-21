@@ -25,6 +25,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     private static final String        NULL_STRING  = "null";
     private static final char          EOF_CHAR     = '\000';
     //
+    protected final      Config        config;
     private final        String        input;
     //
     private              int           i;
@@ -34,8 +35,9 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     private              int           index;
     private              Stack<Object> path;
 
-    protected FromJsonBase(String input) {
-        this.input = Objects.requireNonNull(input);
+    protected FromJsonBase(String input, Config config) {
+        this.input  = Objects.requireNonNull(input);
+        this.config = config;
     }
 
     protected Object parse() {
@@ -53,6 +55,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
+    @SuppressWarnings("EmptyMethod")
     protected void begin() {
     }
 
@@ -88,7 +91,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         return m;
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "EmptyMethod"})
     protected void detectedWhitespace(int offset, Supplier<String> stringSupplier) {
     }
 
@@ -341,6 +344,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         }
     }
 
+    @SuppressWarnings("SameReturnValue")
     protected Object parseTrue() {
         if (!input.startsWith(TRUE_STRING, i)) {
             throw error("'true' expected");
@@ -349,6 +353,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         return true;
     }
 
+    @SuppressWarnings("SameReturnValue")
     protected Object parseFalse() {
         if (!input.startsWith(FALSE_STRING, i)) {
             throw error("'false' expected");
@@ -357,6 +362,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         return false;
     }
 
+    @SuppressWarnings("SameReturnValue")
     protected Object parseNull() {
         if (!input.startsWith(NULL_STRING, i)) {
             throw error("'null' expected");

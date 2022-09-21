@@ -29,9 +29,13 @@ import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.MAY_BE_MORE;
 import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.MAY_NOT_BE_MORE;
 
 public class FromJsonGeneric extends FromJsonBase<Object, Object> {
-    @SuppressWarnings("unchecked")
     public static <T> T fromJson(Type t, String s) {
-        return (T) new FromJsonGeneric(t, s).parse();
+        return fromJson(t, s, new Config());
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> T fromJson(Type t, String s, Config config) {
+        return (T) new FromJsonGeneric(t, s, config).parse();
     }
 
     private final Stack<TypeInfo>     typeInfoStack    = new Stack<>();
@@ -41,7 +45,6 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
         typeInfoStack.push(replacement);
     };
     private final Map<Object, Object> id2objectMap     = new HashMap<>();
-    private       boolean             ignoreSFOs;
 
     enum IdAcceptState {
         MAY_BE_MORE, MAY_BE_ID, MAY_NOT_BE_MORE
@@ -49,18 +52,13 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
 
     private IdAcceptState idAcceptState = MAY_BE_MORE;
 
-    public FromJsonGeneric(Type t, String input) {
-        super(input);
+    public FromJsonGeneric(Type t, String input, Config config) {
+        super(input, config);
         pushType(t);
     }
 
-    @SuppressWarnings("unused")
-    public void setIgnoreSFOs(boolean b) {
-        ignoreSFOs = b;
-    }
-
     private void pushType(Type subType) {
-        TypeInfo typeInfo = typeInfoMap.computeIfAbsent(subType, t -> GenericsUtil.makeTypeInfo(t, ignoreSFOs, topStackReplacer));
+        TypeInfo typeInfo = typeInfoMap.computeIfAbsent(subType, t -> GenericsUtil.makeTypeInfo(t, config, topStackReplacer));
         typeInfoStack.push(typeInfo);
     }
 

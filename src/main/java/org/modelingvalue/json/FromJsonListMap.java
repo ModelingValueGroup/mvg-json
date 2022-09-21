@@ -22,11 +22,15 @@ import java.util.Map;
 
 public class FromJsonListMap extends FromJsonBase<Iterable<Object>, Map<String, Object>> {
     public static Object fromJson(String s) {
-        return new FromJsonListMap(s).parse();
+        return fromJson(s, new Config());
     }
 
-    protected FromJsonListMap(String input) {
-        super(input);
+    public static Object fromJson(String s, Config config) {
+        return new FromJsonListMap(s, config).parse();
+    }
+
+    protected FromJsonListMap(String input, Config config) {
+        super(input, config);
     }
 
     @Override

@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -373,7 +374,7 @@ public class JsonTests {
             if (id != sub1.id) {
                 return false;
             }
-            return sub != null ? sub.equals(sub1.sub) : sub1.sub == null;
+            return Objects.equals(sub, sub1.sub);
         }
 
         @Override
@@ -389,6 +390,7 @@ public class JsonTests {
         }
     }
 
+    @SuppressWarnings("CanBeFinal")
     public static class NUM {
         int num;
 
@@ -397,6 +399,7 @@ public class JsonTests {
         }
     }
 
+    @SuppressWarnings("CanBeFinal")
     public static class BOOL {
         boolean bool;
 
@@ -405,6 +408,7 @@ public class JsonTests {
         }
     }
 
+    @SuppressWarnings("CanBeFinal")
     public static class STRING {
         String string;
 
@@ -435,6 +439,7 @@ public class JsonTests {
 
     public static class XXX extends Abstract {
         int field;
+        @SuppressWarnings("unused")
         Abstract subAbstract;
     }
 
@@ -442,6 +447,7 @@ public class JsonTests {
         int field;
     }
 
+    @SuppressWarnings("unused")
     public static class AAA {
         NUM    num;
         BOOL   bool;

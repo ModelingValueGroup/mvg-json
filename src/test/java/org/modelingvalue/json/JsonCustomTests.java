@@ -66,7 +66,7 @@ public class JsonCustomTests {
         }
 
         protected CountingTesterFromJson(String input) {
-            super(input);
+            super(input, new Config());
         }
 
         @Override
