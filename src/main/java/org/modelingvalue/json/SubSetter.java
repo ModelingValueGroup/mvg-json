@@ -1,335 +1,22 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// (C) Copyright 2018-2022 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
-//                                                                                                                     ~
-// Licensed under the GNU Lesser General Public License v3.0 (the 'License'). You may not use this file except in      ~
-// compliance with the License. You may obtain a copy of the License at: https://choosealicense.com/licenses/lgpl-3.0  ~
-// Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on ~
-// an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the  ~
-// specific language governing permissions and limitations under the License.                                          ~
-//                                                                                                                     ~
-// Maintainers:                                                                                                        ~
-//     Wim Bast, Tom Brus, Ronald Krijgsheld                                                                           ~
-// Contributors:                                                                                                       ~
-//     Arjan Kok, Carel Bast                                                                                           ~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 package org.modelingvalue.json;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
-public class GenericsUtil {
-    interface Maker {
-        Object make();
-    }
-
-    interface SubSetter {
-        // if (o==Collection) o.add(v) or o[key]=v (key=Integer)
-        // if (o==Map       ) o.put(key,v)
-        // if (o==Object    ) o.key = v
-        Object set(Object o, Object key, Object v);
-    }
-
-    interface TypeInfo {
-        Maker getMaker();
-
-        SubSetter getSubSetter(Object key);
-
-        Type getSubType(Object key);
-
-        boolean isIdField(String name);
-    }
-
-    public static TypeInfo makeTypeInfo(Type type, Config config, Consumer<TypeInfo> topStackReplacer) {
-        Class<?> rawClass = getRawClassOf(type);
-
-        if (Map.class.isAssignableFrom(rawClass)) {
-            return new MapTypeInfo(rawClass, getElementType(type), config);
-        } else if (Collection.class.isAssignableFrom(rawClass)) {
-            return new CollectionTypeInfo(rawClass, getElementType(type), config);
-        } else if (rawClass.isArray()) {
-            throw new RuntimeException("Arrays not yet supported: " + type);
-        } else if (Object.class.isAssignableFrom(rawClass)) {
-            Method classSelector = findClassSelector(rawClass, config);
-            if (classSelector != null) {
-                return new SelectorTypeInfo(rawClass, classSelector, config, topStackReplacer);
-            } else {
-                return new ObjectTypeInfo(rawClass, config);
-            }
-        }
-        throw new IllegalArgumentException("Class not yet supported: " + rawClass.getSimpleName());
-    }
-
-    public abstract static class BaseTypeInfo implements TypeInfo {
-        public final Class<?>  clazz;
-        public final Maker     maker;
-        public final SubSetter subSetter;
-        public final Type      subType;
-        public final Config    config;
-
-        public BaseTypeInfo(Class<?> clazz, Maker maker, SubSetter subSetter, Type subType, Config config) {
-            this.clazz     = clazz;
-            this.maker     = maker;
-            this.subSetter = subSetter;
-            this.subType   = subType;
-            this.config    = config;
-        }
-
-        public Class<?> getClazz() {
-            return clazz;
-        }
-
-        public Maker getMaker() {
-            return maker;
-        }
-
-        public SubSetter getSubSetter(Object key) {
-            return subSetter;
-        }
-
-        public Type getSubType(Object key) {
-            return subType;
-        }
-
-        protected static Maker defaultMaker(Class<?> clazz) {
-            if (clazz.isInterface()) {
-                if (clazz.isAssignableFrom(List.class)) {
-                    return ArrayList::new;
-                }
-                if (clazz.isAssignableFrom(Set.class)) {
-                    return HashSet::new;
-                }
-                if (clazz.isAssignableFrom(Map.class)) {
-                    return HashMap::new;
-                }
-                throw new RuntimeException("problem instanciating interface " + clazz.getSimpleName());
-            }
-            if (Modifier.isAbstract(clazz.getModifiers())) {
-                throw new RuntimeException("problem instanciating abstract class " + clazz.getSimpleName());
-            }
-            return () -> {
-                try {
-                    return clazz.getConstructor().newInstance();
-                } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
-                         NoSuchMethodException e) {
-                    throw new RuntimeException("problem instanciating " + clazz.getSimpleName(), e);
-                }
-            };
-        }
-
-        public boolean isIdField(String name) {
-            return false;
-        }
-    }
-
-    public static class CollectionTypeInfo extends BaseTypeInfo {
-        public CollectionTypeInfo(Class<?> clazz, Type elementType, Config config) {
-            super(clazz, defaultMaker(clazz), CoercingFieldSetter.forCollection(elementType), elementType, config);
-        }
-
-        @Override
-        public String toString() {
-            return "CollectionTypeInfo[" + getClazz().getSimpleName() + "]";
-        }
-    }
-
-    public static class MapTypeInfo extends BaseTypeInfo {
-        public MapTypeInfo(Class<?> clazz, Type elementType, Config config) {
-            super(clazz, defaultMaker(clazz), CoercingFieldSetter.forMap(elementType), elementType, config);
-        }
-
-        @Override
-        public String toString() {
-            return "MapTypeInfo[" + getClazz().getSimpleName() + "]";
-        }
-    }
-
-    public static class SelectorTypeInfo extends BaseTypeInfo {
-        private final Method             classSelector;
-        private final Consumer<TypeInfo> topStackReplacer;
-
-        public SelectorTypeInfo(Class<?> clazz, Method classSelector, Config config, Consumer<TypeInfo> topStackReplacer) {
-            super(clazz, () -> null, null, null, config);
-            this.classSelector    = classSelector;
-            this.topStackReplacer = topStackReplacer;
-        }
-
-        @Override
-        public SubSetter getSubSetter(Object key_) {
-            return (o, key, v) -> {
-                assert o == null;
-                assert key == key_;
-                try {
-                    Object clazzObj = classSelector.invoke(null, key, v);
-                    if (!(clazzObj instanceof Class)) {
-                        throw new RuntimeException("problem in class-selector " + classSelector + ", it returned " + clazzObj);
-                    }
-                    Class<?>       clazz       = (Class<?>) clazzObj;
-                    ObjectTypeInfo newTypeInfo = new ObjectTypeInfo(clazz, config);
-                    topStackReplacer.accept(newTypeInfo);
-                    Object newObject = clazz.getDeclaredConstructor().newInstance();
-                    return newTypeInfo.getFieldInfo(key).subSetter.set(newObject, key, v);
-                } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException |
-                         InstantiationException e) {
-                    throw new RuntimeException("problem in class-selector " + classSelector, e);
-                }
-            };
-        }
-
-        @Override
-        public String toString() {
-            return "SelectorTypeInfo[" + getClazz().getSimpleName() + "]";
-        }
-    }
-
-    public static class ObjectTypeInfo extends BaseTypeInfo {
-        public class FieldInfo {
-            public final Field     field;
-            public final Type      type;
-            public final SubSetter subSetter;
-            public final boolean   isId;
-
-            private FieldInfo(Field f) {
-                field     = f;
-                type      = f.getGenericType();
-                subSetter = CoercingFieldSetter.forField(f, config.ignoreSFOs);
-                isId      = config.getAnnotation(f, JsonId.class) != null;
-            }
-        }
-
-        private final Map<String, FieldInfo> fieldInfoMap;
-        private final String                 idFieldName;
-
-        public ObjectTypeInfo(Class<?> clazz, Config config) {
-            super(clazz, defaultMaker(clazz), null, null, config);
-            this.fieldInfoMap = makeFieldInfoMap(clazz);
-            this.idFieldName  = getIdField(fieldInfoMap);
-        }
-
-        private Map<String, FieldInfo> makeFieldInfoMap(Class<?> clazz) {
-            return getAllFields(clazz).stream()
-                    .peek(f -> f.setAccessible(true))
-                    .filter(f -> !f.isSynthetic() && !Modifier.isFinal(f.getModifiers()) && !Modifier.isStatic(f.getModifiers()))
-                    .collect(Collectors.toMap(f1 -> getFieldName(f1, config), FieldInfo::new));
-        }
-
-        private String getIdField(Map<String, FieldInfo> map) {
-            return map.values().stream().filter(f -> f.isId).findAny().map(f -> getFieldName(f.field, config)).orElse(null);
-        }
-
-        private static List<Field> getAllFields(Class<?> type) {
-            List<Field> fields = new ArrayList<>();
-            for (Class<?> c = type; c != null; c = c.getSuperclass()) {
-                fields.addAll(Arrays.asList(c.getDeclaredFields()));
-            }
-            return fields;
-        }
-
-        @Override
-        public Type getSubType(Object key) {
-            return getFieldInfo(key).type;
-        }
-
-        @Override
-        public SubSetter getSubSetter(Object key) {
-            return getFieldInfo(key).subSetter;
-        }
-
-        private FieldInfo getFieldInfoOrNull(Object key) {
-            if (!(key instanceof String)) {
-                throw new RuntimeException("unexpected key type (String expected): " + key.getClass().getSimpleName());
-            }
-            return fieldInfoMap.get((String) key);
-        }
-
-        private FieldInfo getFieldInfo(Object key) {
-            FieldInfo fieldInfo = getFieldInfoOrNull(key);
-            if (fieldInfo == null) {
-                throw new RuntimeException("the type " + getClazz().getSimpleName() + " does not have a field " + key);
-            }
-            return fieldInfo;
-        }
-
-        @Override
-        public String toString() {
-            int numMaps = fieldInfoMap.size();
-            return "ObjectTypeInfo[" + getClazz().getSimpleName() + " with " + numMaps + " fields]";
-        }
-
-        public boolean isIdField(String name) {
-            return idFieldName != null && idFieldName.equals(name);
-        }
-    }
-
-    private static Method findClassSelector(Class<?> clazz, Config config) {
-        return Arrays.stream(clazz.getMethods())
-                .filter(m -> config.getAnnotation(m, JsonClassSelector.class) != null)
-                .filter(m -> Modifier.isStatic(m.getModifiers()))
-                .filter(m -> Class.class.isAssignableFrom(m.getReturnType()))
-                .filter(m -> m.getParameterCount() == 2)
-                .filter(m -> m.getParameterTypes()[0] == String.class)
-                .findFirst()
-                .orElse(null);
-    }
-
-    public static String getFieldName(Field f, Config config) {
-        JsonName nameAnno = config.getAnnotation(f, JsonName.class);
-        return nameAnno == null ? f.getName() : nameAnno.value();
-    }
-
-    public static String getMethodName(Method m) {
-        return m.getName().replaceAll("^(get|is)([A-Z]).*", "$2").toLowerCase() + m.getName().replaceAll("^(get|is)[A-Z]", "");
-    }
-
-    public static Class<?> getRawClassOf(Type type) {
-        if (type instanceof ParameterizedType) {
-            Type rawType = ((ParameterizedType) type).getRawType();
-            if (rawType instanceof Class) {
-                return (Class<?>) rawType;
-            }
-        } else if (type instanceof Class) {
-            return (Class<?>) type;
-        }
-        throw new IllegalArgumentException("no raw class can be determined for " + type);
-    }
-
-    public static Type getElementType(Type type) {
-
-        if (type instanceof ParameterizedType) {
-            ParameterizedType ptype = (ParameterizedType) type;
-            List<Type>        args  = Arrays.stream(ptype.getActualTypeArguments()).collect(Collectors.toList());
-            if (args.size() == 0) {
-                return null;
-            }
-            if (args.size() == 1) {
-                return args.get(0);
-            }
-            if (args.size() == 2) {
-                return args.get(1);
-            }
-        } else if (type instanceof Class) {
-            return null;
-        }
-        throw new IllegalArgumentException("no element type can be determined for " + type);
-    }
+interface SubSetter {
+    // if (o==Collection) o.add(v) or o[key]=v (key=Integer)
+    // if (o==Map       ) o.put(key,v)
+    // if (o==Object    ) o.key = v
+    Object set(Object o, Object key, Object v);
 
     @SuppressWarnings({"unchecked", "Convert2MethodRef"})
-    private static class CoercingFieldSetter implements SubSetter {
+    class CoercingMemberSetter implements SubSetter {
         @SuppressWarnings({"FieldCanBeLocal", "unused"})
         private final String    name;
         private final SubSetter nullFieldSetter;
@@ -340,10 +27,10 @@ public class GenericsUtil {
         private final SubSetter objectFieldSetter;
 
         public static SubSetter forCollection(Type subType) {
-            Class<?> clazz = getRawClassOf(subType);
+            Class<?> clazz = U.getRawClassOf(subType);
 
             if (clazz == long.class || clazz == Long.class) {
-                return new CoercingFieldSetter("long array",
+                return new CoercingMemberSetter("long array",
                         clazz.isPrimitive() ? null : (o, key, v) -> setCollectionElement(o, (Long) null),
                         (o, key, v) -> setCollectionElement(o, (long) v),
                         null,
@@ -353,7 +40,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == double.class || clazz == Double.class) {
-                return new CoercingFieldSetter("double array",
+                return new CoercingMemberSetter("double array",
                         clazz.isPrimitive() ? null : (o, key, v) -> setCollectionElement(o, (Double) null),
                         (o, key, v) -> setCollectionElement(o, (double) (long) v),
                         (o, key, v) -> setCollectionElement(o, (double) v),
@@ -363,7 +50,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == int.class || clazz == Integer.class) {
-                return new CoercingFieldSetter("int array",
+                return new CoercingMemberSetter("int array",
                         clazz.isPrimitive() ? null : (o, key, v) -> setCollectionElement(o, (Integer) null),
                         (o, key, v) -> setCollectionElement(o, (int) (long) v),
                         null,
@@ -373,7 +60,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == boolean.class || clazz == Boolean.class) {
-                return new CoercingFieldSetter("boolean array",
+                return new CoercingMemberSetter("boolean array",
                         clazz.isPrimitive() ? null : (o, key, v) -> setCollectionElement(o, (Boolean) null),
                         null,
                         null,
@@ -383,7 +70,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == byte.class || clazz == Byte.class) {
-                return new CoercingFieldSetter("byte array",
+                return new CoercingMemberSetter("byte array",
                         clazz.isPrimitive() ? null : (o, key, v) -> setCollectionElement(o, (Byte) null),
                         (o, key, v) -> setCollectionElement(o, (byte) (long) v),
                         null,
@@ -393,7 +80,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == short.class || clazz == Short.class) {
-                return new CoercingFieldSetter("short array",
+                return new CoercingMemberSetter("short array",
                         clazz.isPrimitive() ? null : (o, key, v) -> setCollectionElement(o, (Short) null),
                         (o, key, v) -> setCollectionElement(o, (short) (long) v),
                         null,
@@ -403,7 +90,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == char.class || clazz == Character.class) {
-                return new CoercingFieldSetter("char array",
+                return new CoercingMemberSetter("char array",
                         clazz.isPrimitive() ? null : (o, key, v) -> setCollectionElement(o, (Character) null),
                         (o, key, v) -> setCollectionElement(o, (char) (long) v),
                         null,
@@ -413,7 +100,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == float.class || clazz == Float.class) {
-                return new CoercingFieldSetter("float array",
+                return new CoercingMemberSetter("float array",
                         clazz.isPrimitive() ? null : (o, key, v) -> setCollectionElement(o, (Float) null),
                         (o, key, v) -> setCollectionElement(o, (float) (long) v),
                         (o, key, v) -> setCollectionElement(o, (float) (double) v),
@@ -423,7 +110,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == String.class) {
-                return new CoercingFieldSetter("String array",
+                return new CoercingMemberSetter("String array",
                         (o, key, v) -> setCollectionElement(o, null),
                         (o, key, v) -> setCollectionElement(o, Long.toString((long) v)),
                         (o, key, v) -> setCollectionElement(o, Double.toString((double) v)),
@@ -433,7 +120,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == Iterable.class) {
-                return new CoercingFieldSetter("Iterable array",
+                return new CoercingMemberSetter("Iterable array",
                         (o, key, v) -> setCollectionElement(o, (Iterable<?>) null),
                         null,
                         null,
@@ -443,7 +130,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == Map.class) {
-                return new CoercingFieldSetter("Map array",
+                return new CoercingMemberSetter("Map array",
                         (o, key, v) -> setCollectionElement(o, (Map<?, ?>) null),
                         null,
                         null,
@@ -452,7 +139,7 @@ public class GenericsUtil {
                         (o, key, v) -> setCollectionElement(o, v)
                 );
             }
-            return new CoercingFieldSetter("other array",
+            return new CoercingMemberSetter("other array",
                     (o, key, v) -> setCollectionElement(o, (Object) null),
                     null,
                     null,
@@ -463,10 +150,10 @@ public class GenericsUtil {
         }
 
         public static SubSetter forMap(Type subType) {
-            Class<?> clazz = getRawClassOf(subType);
+            Class<?> clazz = U.getRawClassOf(subType);
 
             if (clazz == long.class || clazz == Long.class) {
-                return new CoercingFieldSetter("long Map",
+                return new CoercingMemberSetter("long Map",
                         clazz.isPrimitive() ? null : (o, key, v) -> setMapElement(o, key, (Long) null),
                         (o, key, v) -> setMapElement(o, key, (long) v),
                         null,
@@ -476,7 +163,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == double.class || clazz == Double.class) {
-                return new CoercingFieldSetter("double Map",
+                return new CoercingMemberSetter("double Map",
                         clazz.isPrimitive() ? null : (o, key, v) -> setMapElement(o, key, (Double) null),
                         (o, key, v) -> setMapElement(o, key, (double) (long) v),
                         (o, key, v) -> setMapElement(o, key, (double) v),
@@ -486,7 +173,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == int.class || clazz == Integer.class) {
-                return new CoercingFieldSetter("int Map",
+                return new CoercingMemberSetter("int Map",
                         clazz.isPrimitive() ? null : (o, key, v) -> setMapElement(o, key, (Integer) null),
                         (o, key, v) -> setMapElement(o, key, (int) (long) v),
                         null,
@@ -496,7 +183,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == boolean.class || clazz == Boolean.class) {
-                return new CoercingFieldSetter("boolean Map",
+                return new CoercingMemberSetter("boolean Map",
                         clazz.isPrimitive() ? null : (o, key, v) -> setMapElement(o, key, (Boolean) null),
                         null,
                         null,
@@ -506,7 +193,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == byte.class || clazz == Byte.class) {
-                return new CoercingFieldSetter("long Map",
+                return new CoercingMemberSetter("long Map",
                         clazz.isPrimitive() ? null : (o, key, v) -> setMapElement(o, key, (Byte) null),
                         (o, key, v) -> setMapElement(o, key, (byte) (long) v),
                         null,
@@ -516,7 +203,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == short.class || clazz == Short.class) {
-                return new CoercingFieldSetter("short Map",
+                return new CoercingMemberSetter("short Map",
                         clazz.isPrimitive() ? null : (o, key, v) -> setMapElement(o, key, (Short) null),
                         (o, key, v) -> setMapElement(o, key, (short) (long) v),
                         null,
@@ -526,7 +213,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == char.class || clazz == Character.class) {
-                return new CoercingFieldSetter("char Map",
+                return new CoercingMemberSetter("char Map",
                         clazz.isPrimitive() ? null : (o, key, v) -> setMapElement(o, key, (Character) null),
                         (o, key, v) -> setMapElement(o, key, (char) (long) v),
                         null,
@@ -536,7 +223,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == float.class || clazz == Float.class) {
-                return new CoercingFieldSetter("float Map",
+                return new CoercingMemberSetter("float Map",
                         clazz.isPrimitive() ? null : (o, key, v) -> setMapElement(o, key, (Float) null),
                         (o, key, v) -> setMapElement(o, key, (float) (long) v),
                         (o, key, v) -> setMapElement(o, key, (float) (double) v),
@@ -546,7 +233,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == String.class) {
-                return new CoercingFieldSetter("String Map",
+                return new CoercingMemberSetter("String Map",
                         (o, key, v) -> setMapElement(o, key, null),
                         (o, key, v) -> setMapElement(o, key, Long.toString((long) v)),
                         (o, key, v) -> setMapElement(o, key, Double.toString((double) v)),
@@ -556,7 +243,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == Iterable.class) {
-                return new CoercingFieldSetter("Iterable Map",
+                return new CoercingMemberSetter("Iterable Map",
                         (o, key, v) -> setMapElement(o, key, (Iterable<?>) null),
                         null,
                         null,
@@ -566,7 +253,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == Map.class) {
-                return new CoercingFieldSetter("Map Map",
+                return new CoercingMemberSetter("Map Map",
                         (o, key, v) -> setMapElement(o, key, (Map<?, ?>) null),
                         null,
                         null,
@@ -575,7 +262,7 @@ public class GenericsUtil {
                         (o, key, v) -> setMapElement(o, key, v)
                 );
             }
-            return new CoercingFieldSetter("other Map",
+            return new CoercingMemberSetter("other Map",
                     (o, key, v) -> setMapElement(o, key, (Object) null),
                     (o, key, v) -> setMapElement(o, key, v),
                     (o, key, v) -> setMapElement(o, key, v),
@@ -585,10 +272,10 @@ public class GenericsUtil {
             );
         }
 
-        private static CoercingFieldSetter forField(Field f, boolean ignoreSFO) {
+        public static CoercingMemberSetter forField(Field f, boolean ignoreSFO) {
             Class<?> clazz = f.getType();
             if (clazz == long.class || clazz == Long.class) {
-                return new CoercingFieldSetter("long field " + f.getName(),
+                return new CoercingMemberSetter("long field " + f.getName(),
                         clazz.isPrimitive() ? null : (o, key, v) -> setField(f, o, (Long) null),
                         (o, key, v) -> setField(f, o, (long) v),
                         (o, key, v) -> setField(f, o, (long) (double) v),
@@ -598,7 +285,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == double.class || clazz == Double.class) {
-                return new CoercingFieldSetter("double field " + f.getName(),
+                return new CoercingMemberSetter("double field " + f.getName(),
                         clazz.isPrimitive() ? null : (o, key, v) -> setField(f, o, (Double) null),
                         (o, key, v) -> setField(f, o, (double) (long) v),
                         (o, key, v) -> setField(f, o, (double) v),
@@ -608,7 +295,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == int.class || clazz == Integer.class) {
-                return new CoercingFieldSetter("int field " + f.getName(),
+                return new CoercingMemberSetter("int field " + f.getName(),
                         clazz.isPrimitive() ? null : (o, key, v) -> setField(f, o, (Integer) null),
                         (o, key, v) -> setField(f, o, (int) (long) v),
                         (o, key, v) -> setField(f, o, (int) (double) v),
@@ -618,7 +305,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == boolean.class || clazz == Boolean.class) {
-                return new CoercingFieldSetter("boolean field " + f.getName(),
+                return new CoercingMemberSetter("boolean field " + f.getName(),
                         clazz.isPrimitive() ? null : (o, key, v) -> setField(f, o, (Boolean) null),
                         null,
                         null,
@@ -628,7 +315,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == byte.class || clazz == Byte.class) {
-                return new CoercingFieldSetter("byte field " + f.getName(),
+                return new CoercingMemberSetter("byte field " + f.getName(),
                         clazz.isPrimitive() ? null : (o, key, v) -> setField(f, o, (Byte) null),
                         (o, key, v) -> setField(f, o, (byte) (long) v),
                         (o, key, v) -> setField(f, o, (byte) (double) v),
@@ -638,7 +325,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == short.class || clazz == Short.class) {
-                return new CoercingFieldSetter("short field " + f.getName(),
+                return new CoercingMemberSetter("short field " + f.getName(),
                         clazz.isPrimitive() ? null : (o, key, v) -> setField(f, o, (Short) null),
                         (o, key, v) -> setField(f, o, (short) (long) v),
                         (o, key, v) -> setField(f, o, (short) (double) v),
@@ -648,7 +335,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == char.class || clazz == Character.class) {
-                return new CoercingFieldSetter("char field " + f.getName(),
+                return new CoercingMemberSetter("char field " + f.getName(),
                         clazz.isPrimitive() ? null : (o, key, v) -> setField(f, o, (Character) null),
                         (o, key, v) -> setField(f, o, (char) (long) v),
                         null,
@@ -658,7 +345,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == float.class || clazz == Float.class) {
-                return new CoercingFieldSetter("float field " + f.getName(),
+                return new CoercingMemberSetter("float field " + f.getName(),
                         clazz.isPrimitive() ? null : (o, key, v) -> setField(f, o, (Float) null),
                         (o, key, v) -> setField(f, o, (float) (long) v),
                         (o, key, v) -> setField(f, o, (float) (double) v),
@@ -668,7 +355,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == String.class) {
-                return new CoercingFieldSetter("String field " + f.getName(),
+                return new CoercingMemberSetter("String field " + f.getName(),
                         (o, key, v) -> setField(f, o, null),
                         (o, key, v) -> setField(f, o, Long.toString((long) v)),
                         (o, key, v) -> setField(f, o, Double.toString((double) v)),
@@ -678,7 +365,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == Iterable.class) {
-                return new CoercingFieldSetter("Iterable field " + f.getName(),
+                return new CoercingMemberSetter("Iterable field " + f.getName(),
                         (o, key, v) -> setField(f, o, (Iterable<?>) null),
                         null,
                         null,
@@ -688,7 +375,7 @@ public class GenericsUtil {
                 );
             }
             if (clazz == Map.class) {
-                return new CoercingFieldSetter("Map field " + f.getName(),
+                return new CoercingMemberSetter("Map field " + f.getName(),
                         (o, key, v) -> setField(f, o, (Map<?, ?>) null),
                         null,
                         null,
@@ -713,7 +400,7 @@ public class GenericsUtil {
                 stringFieldSetter  = makeConstructorSubSetter(null, f, String.class, x -> (String) x);
             }
 
-            return new CoercingFieldSetter("other field " + f.getName(),
+            return new CoercingMemberSetter("other field " + f.getName(),
                     (o, key, v) -> setField(f, o, (Object) null),
                     longFieldSetter,
                     doubleFieldSetter,
@@ -723,9 +410,147 @@ public class GenericsUtil {
             );
         }
 
+        public static CoercingMemberSetter forMethod(Method m, boolean ignoreSFO) {
+            Class<?> clazz = m.getParameterTypes()[0];
+            if (clazz == long.class || clazz == Long.class) {
+                return new CoercingMemberSetter("long method " + m.getName(),
+                        clazz.isPrimitive() ? null : (o, key, v) -> setMethod(m, o, (Long) null),
+                        (o, key, v) -> setMethod(m, o, (long) v),
+                        (o, key, v) -> setMethod(m, o, (long) (double) v),
+                        null,
+                        (o, key, v) -> setMethod(m, o, Long.parseLong((String) v)),
+                        (o, key, v) -> setMethod(m, o, v)
+                );
+            }
+            if (clazz == double.class || clazz == Double.class) {
+                return new CoercingMemberSetter("double method " + m.getName(),
+                        clazz.isPrimitive() ? null : (o, key, v) -> setMethod(m, o, (Double) null),
+                        (o, key, v) -> setMethod(m, o, (double) (long) v),
+                        (o, key, v) -> setMethod(m, o, (double) v),
+                        null,
+                        (o, key, v) -> setMethod(m, o, Double.parseDouble((String) v)),
+                        (o, key, v) -> setMethod(m, o, v)
+                );
+            }
+            if (clazz == int.class || clazz == Integer.class) {
+                return new CoercingMemberSetter("int method " + m.getName(),
+                        clazz.isPrimitive() ? null : (o, key, v) -> setMethod(m, o, (Integer) null),
+                        (o, key, v) -> setMethod(m, o, (int) (long) v),
+                        (o, key, v) -> setMethod(m, o, (int) (double) v),
+                        null,
+                        (o, key, v) -> setMethod(m, o, Integer.parseInt((String) v)),
+                        (o, key, v) -> setMethod(m, o, v)
+                );
+            }
+            if (clazz == boolean.class || clazz == Boolean.class) {
+                return new CoercingMemberSetter("boolean method " + m.getName(),
+                        clazz.isPrimitive() ? null : (o, key, v) -> setMethod(m, o, (Boolean) null),
+                        null,
+                        null,
+                        (o, key, v) -> setMethod(m, o, (boolean) v),
+                        (o, key, v) -> setMethod(m, o, Boolean.parseBoolean((String) v)),
+                        (o, key, v) -> setMethod(m, o, v)
+                );
+            }
+            if (clazz == byte.class || clazz == Byte.class) {
+                return new CoercingMemberSetter("byte method " + m.getName(),
+                        clazz.isPrimitive() ? null : (o, key, v) -> setMethod(m, o, (Byte) null),
+                        (o, key, v) -> setMethod(m, o, (byte) (long) v),
+                        (o, key, v) -> setMethod(m, o, (byte) (double) v),
+                        null,
+                        (o, key, v) -> setMethod(m, o, Byte.parseByte((String) v)),
+                        (o, key, v) -> setMethod(m, o, v)
+                );
+            }
+            if (clazz == short.class || clazz == Short.class) {
+                return new CoercingMemberSetter("short method " + m.getName(),
+                        clazz.isPrimitive() ? null : (o, key, v) -> setMethod(m, o, (Short) null),
+                        (o, key, v) -> setMethod(m, o, (short) (long) v),
+                        (o, key, v) -> setMethod(m, o, (short) (double) v),
+                        null,
+                        (o, key, v) -> setMethod(m, o, Short.parseShort((String) v)),
+                        (o, key, v) -> setMethod(m, o, v)
+                );
+            }
+            if (clazz == char.class || clazz == Character.class) {
+                return new CoercingMemberSetter("char method " + m.getName(),
+                        clazz.isPrimitive() ? null : (o, key, v) -> setMethod(m, o, (Character) null),
+                        (o, key, v) -> setMethod(m, o, (char) (long) v),
+                        null,
+                        null,
+                        (o, key, v) -> setMethod(m, o, ((String) v).charAt(0)),
+                        (o, key, v) -> setMethod(m, o, v)
+                );
+            }
+            if (clazz == float.class || clazz == Float.class) {
+                return new CoercingMemberSetter("float method " + m.getName(),
+                        clazz.isPrimitive() ? null : (o, key, v) -> setMethod(m, o, (Float) null),
+                        (o, key, v) -> setMethod(m, o, (float) (long) v),
+                        (o, key, v) -> setMethod(m, o, (float) (double) v),
+                        null,
+                        (o, key, v) -> setMethod(m, o, Float.parseFloat((String) v)),
+                        (o, key, v) -> setMethod(m, o, v)
+                );
+            }
+            if (clazz == String.class) {
+                return new CoercingMemberSetter("String method " + m.getName(),
+                        (o, key, v) -> setMethod(m, o, null),
+                        (o, key, v) -> setMethod(m, o, Long.toString((long) v)),
+                        (o, key, v) -> setMethod(m, o, Double.toString((double) v)),
+                        (o, key, v) -> setMethod(m, o, Boolean.toString((boolean) v)),
+                        (o, key, v) -> setMethod(m, o, (String) v),
+                        (o, key, v) -> setMethod(m, o, v)
+                );
+            }
+            if (clazz == Iterable.class) {
+                return new CoercingMemberSetter("Iterable method " + m.getName(),
+                        (o, key, v) -> setMethod(m, o, (Iterable<?>) null),
+                        null,
+                        null,
+                        null,
+                        null,
+                        (o, key, v) -> setMethod(m, o, v)
+                );
+            }
+            if (clazz == Map.class) {
+                return new CoercingMemberSetter("Map method " + m.getName(),
+                        (o, key, v) -> setMethod(m, o, (Map<?, ?>) null),
+                        null,
+                        null,
+                        null,
+                        null,
+                        (o, key, v) -> setMethod(m, o, v)
+                );
+            }
+            SubSetter longFieldSetter    = null;
+            SubSetter doubleFieldSetter  = null;
+            SubSetter booleanFieldSetter = null;
+            SubSetter stringFieldSetter  = null;
+            if (!ignoreSFO) {
+                longFieldSetter    = makeConstructorSubSetter(null, m, long.class, x -> (long) x);
+                longFieldSetter    = makeConstructorSubSetter(longFieldSetter, m, int.class, x -> (int) (long) x);
+                longFieldSetter    = makeConstructorSubSetter(longFieldSetter, m, short.class, x -> (short) (long) x);
+                longFieldSetter    = makeConstructorSubSetter(longFieldSetter, m, byte.class, x -> (byte) (long) x);
+                longFieldSetter    = makeConstructorSubSetter(longFieldSetter, m, char.class, x -> (char) (long) x);
+                doubleFieldSetter  = makeConstructorSubSetter(null, m, double.class, x -> (double) x);
+                doubleFieldSetter  = makeConstructorSubSetter(doubleFieldSetter, m, float.class, x -> (float) (double) x);
+                booleanFieldSetter = makeConstructorSubSetter(null, m, boolean.class, x -> (boolean) x);
+                stringFieldSetter  = makeConstructorSubSetter(null, m, String.class, x -> (String) x);
+            }
+
+            return new CoercingMemberSetter("other method " + m.getName(),
+                    (o, key, v) -> setMethod(m, o, (Object) null),
+                    longFieldSetter,
+                    doubleFieldSetter,
+                    booleanFieldSetter,
+                    stringFieldSetter,
+                    (o, key, v) -> setMethod(m, o, v)
+            );
+        }
+
         private static <PRIM> SubSetter makeConstructorSubSetter(SubSetter setter, Field f, Class<PRIM> primClass, Function<Object, PRIM> convert) {
             return setter != null ? setter : Arrays.stream(f.getType().getConstructors())
-                    .filter(c -> c.getParameterCount() == 1 && (c.getParameterTypes()[0] == primClass || c.getParameterTypes()[0] == box(primClass)))
+                    .filter(c -> c.getParameterCount() == 1 && (c.getParameterTypes()[0] == primClass || c.getParameterTypes()[0] == U.box(primClass)))
                     .findFirst()
                     .map(c -> (SubSetter) (o, key, v) -> {
                         try {
@@ -738,7 +563,22 @@ public class GenericsUtil {
                     .orElse(null);
         }
 
-        public CoercingFieldSetter(String name, SubSetter nullFieldSetter, SubSetter longFieldSetter, SubSetter doubleFieldSetter, SubSetter boolFieldSetter, SubSetter stringFieldSetter, SubSetter objectFieldSetter) {
+        private static <PRIM> SubSetter makeConstructorSubSetter(SubSetter setter, Method m, Class<PRIM> primClass, Function<Object, PRIM> convert) {
+            return setter != null ? setter : Arrays.stream(m.getParameterTypes()[0].getConstructors())
+                    .filter(c -> c.getParameterCount() == 1 && (c.getParameterTypes()[0] == primClass || c.getParameterTypes()[0] == U.box(primClass)))
+                    .findFirst()
+                    .map(c -> (SubSetter) (o, key, v) -> {
+                        try {
+                            setMethod(m, o, c.newInstance(convert.apply(v)));
+                            return o;
+                        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                            throw new IllegalArgumentException("can not make new instance of " + c.getDeclaringClass().getSimpleName() + " with arg (" + v + ")", e);
+                        }
+                    })
+                    .orElse(null);
+        }
+
+        public CoercingMemberSetter(String name, SubSetter nullFieldSetter, SubSetter longFieldSetter, SubSetter doubleFieldSetter, SubSetter boolFieldSetter, SubSetter stringFieldSetter, SubSetter objectFieldSetter) {
             this.name              = name;
             this.nullFieldSetter   = nullFieldSetter;
             this.longFieldSetter   = longFieldSetter;
@@ -864,6 +704,97 @@ public class GenericsUtil {
             try {
                 f.set(o, v);
             } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+            return o;
+        }
+
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        private static Object setMethod(Method m, Object o, Object v) {
+            try {
+                m.invoke(o, v);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+            return o;
+        }
+
+        private static Object setMethod(Method m, Object o, long v) {
+            try {
+                m.invoke(o, v);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+            return o;
+        }
+
+        private static Object setMethod(Method m, Object o, int v) {
+            try {
+                m.invoke(o, v);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+            return o;
+        }
+
+        private static Object setMethod(Method m, Object o, double v) {
+            try {
+                m.invoke(o, v);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+            return o;
+        }
+
+        private static Object setMethod(Method m, Object o, String v) {
+            try {
+                m.invoke(o, v);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+            return o;
+        }
+
+        private static Object setMethod(Method m, Object o, boolean v) {
+            try {
+                m.invoke(o, v);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+            return o;
+        }
+
+        private static Object setMethod(Method m, Object o, short v) {
+            try {
+                m.invoke(o, v);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+            return o;
+        }
+
+        private static Object setMethod(Method m, Object o, byte v) {
+            try {
+                m.invoke(o, v);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+            return o;
+        }
+
+        private static Object setMethod(Method m, Object o, char v) {
+            try {
+                m.invoke(o, v);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+            return o;
+        }
+
+        private static Object setMethod(Method m, Object o, float v) {
+            try {
+                m.invoke(o, v);
+            } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new RuntimeException(e);
             }
             return o;
@@ -1030,63 +961,5 @@ public class GenericsUtil {
             ((Map<Object, Float>) o).put(key, v);
             return o;
         }
-    }
-
-    public static Class<?> box(Class<?> t) {
-        if (t.isPrimitive()) {
-            if (t == long.class) {
-                return Long.class;
-            }
-            if (t == int.class) {
-                return Integer.class;
-            }
-            if (t == short.class) {
-                return Short.class;
-            }
-            if (t == byte.class) {
-                return Byte.class;
-            }
-            if (t == char.class) {
-                return Character.class;
-            }
-            if (t == double.class) {
-                return Double.class;
-            }
-            if (t == float.class) {
-                return Float.class;
-            }
-            if (t == boolean.class) {
-                return Boolean.class;
-            }
-        }
-        return t;
-    }
-
-    public static Class<?> unbox(Class<?> t) {
-        if (t == Long.class) {
-            return long.class;
-        }
-        if (t == Integer.class) {
-            return int.class;
-        }
-        if (t == Short.class) {
-            return short.class;
-        }
-        if (t == Byte.class) {
-            return byte.class;
-        }
-        if (t == Character.class) {
-            return char.class;
-        }
-        if (t == Double.class) {
-            return double.class;
-        }
-        if (t == Float.class) {
-            return float.class;
-        }
-        if (t == Boolean.class) {
-            return boolean.class;
-        }
-        return t;
     }
 }

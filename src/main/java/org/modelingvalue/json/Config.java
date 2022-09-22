@@ -16,43 +16,52 @@ public class Config {
     public final Map<Field, List<Annotation>>  extraFieldAnnotations  = new HashMap<>();
     public final Map<Method, List<Annotation>> extraMethodAnnotations = new HashMap<>();
 
+    @SuppressWarnings("unchecked")
     public <T extends Annotation> T getAnnotation(Field f, Class<T> annotation) {
         List<Annotation> l = extraFieldAnnotations.get(f);
-        //noinspection unchecked
         return l == null ? f.getAnnotation(annotation) : l.stream().filter(a -> annotation.isAssignableFrom(a.getClass())).map(a -> (T) a).findFirst().orElseGet(() -> f.getAnnotation(annotation));
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends Annotation> T getAnnotation(Method m, Class<T> annotation) {
         List<Annotation> l = extraMethodAnnotations.get(m);
-        //noinspection unchecked
         return l == null ? m.getAnnotation(annotation) : l.stream().filter(a -> annotation.isAssignableFrom(a.getClass())).map(a -> (T) a).findFirst().orElseGet(() -> m.getAnnotation(annotation));
     }
 
-    public void addJsonClassSelectorAnnotation(Method m) {
-        add(m, new JsonClassSelector() {
+    public void addJsonClassSelectorAnnotation(Method... ms) {
+        JsonClassSelector a = new JsonClassSelector() {
             @Override
             public Class<? extends Annotation> annotationType() {
                 return JsonClassSelector.class;
             }
-        });
+        };
+        for (Method m : ms) {
+            add(m, a);
+        }
     }
 
-    public void addJsonIdAnnotation(Field f) {
-        add(f, new JsonId() {
+    public void addJsonIdAnnotation(Field... fs) {
+        JsonId a = new JsonId() {
             @Override
             public Class<? extends Annotation> annotationType() {
                 return JsonId.class;
             }
-        });
+        };
+        for (Field f : fs) {
+            add(f, a);
+        }
     }
 
-    public void addJsonIdAnnotation(Method m) {
-        add(m, new JsonId() {
+    public void addJsonIdAnnotation(Method... ms) {
+        JsonId a = new JsonId() {
             @Override
             public Class<? extends Annotation> annotationType() {
                 return JsonId.class;
             }
-        });
+        };
+        for (Method m : ms) {
+            add(m, a);
+        }
     }
 
     public void addJsonNameAnnotation(Field f, String name) {

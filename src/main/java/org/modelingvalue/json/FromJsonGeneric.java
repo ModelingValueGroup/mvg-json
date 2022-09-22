@@ -15,9 +15,6 @@
 
 package org.modelingvalue.json;
 
-import org.modelingvalue.json.GenericsUtil.SubSetter;
-import org.modelingvalue.json.GenericsUtil.TypeInfo;
-
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,7 +55,7 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
     }
 
     private void pushType(Type subType) {
-        TypeInfo typeInfo = typeInfoMap.computeIfAbsent(subType, t -> GenericsUtil.makeTypeInfo(t, config, topStackReplacer));
+        TypeInfo typeInfo = typeInfoMap.computeIfAbsent(subType, t -> TypeInfo.makeTypeInfo(t, config, topStackReplacer));
         typeInfoStack.push(typeInfo);
     }
 

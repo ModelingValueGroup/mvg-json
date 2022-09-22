@@ -26,34 +26,35 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class IdTests {
-    private static final String EXPECTED_MINIMAL = /**/
+    private static final String EXPECTED_ID_GETTERS = "{\"id\":123,\"children\":[{\"id\":678,\"children\":null},{\"id\":123},{\"id\":345,\"children\":null}]}";
+    private static final String EXPECTED_MINIMAL    = /**/
             /**/"{" +
             /**//**/"\"id\":\"xxx\"," +
             /**//**/"\"children\":[]," +
             /**//**/"\"friend\":{\"id\":\"xxx\"}," +
             /**//**/"\"parent\":null" +
             /**/"}";
-    private static final String MINIMAL_OK1      = /**/
+    private static final String MINIMAL_OK1         = /**/
             /**/"{" +
             /**//**/"\"id\":\"xxx\"," +
             /**//**/"\"friend\":{\"id\":\"yyy\", \"friend\": {\"id\":\"yyy\"}}" +
             /**/"}";
-    private static final String MINIMAL_OK2      = /**/
+    private static final String MINIMAL_OK2         = /**/
             /**/"{" +
             /**//**/"\"id\":\"xxx\"," +
             /**//**/"\"friend\":{\"id\":\"yyy\", \"friend\": {\"id\":\"zzz\"}}" +
             /**/"}";
-    private static final String MINIMAL_BAD1     = /**/
+    private static final String MINIMAL_BAD1        = /**/
             /**/"{" +
             /**//**/"\"id\":\"xxx\"," +
             /**//**/"\"friend\":{\"id\":\"xxx\", \"friend\": {\"id\":\"yyy\"}}" +
             /**/"}";
-    private static final String MINIMAL_BAD2     = /**/
+    private static final String MINIMAL_BAD2        = /**/
             /**/"{" +
             /**//**/"\"id\":\"xxx\"," +
             /**//**/"\"friend\":{\"friend\": {\"id\":\"yyy\"},\"id\":\"xxx\"}" +
             /**/"}";
-    private static final String EXPECTED_SHARED  = /**/
+    private static final String EXPECTED_SHARED     = /**/
             /**/"{" +
             /**//**/"\"id\":\"dad\"," +
             /**//**/"\"children\":" +
@@ -68,7 +69,7 @@ public class IdTests {
             /**//**/"\"friend\":{\"id\":\"child\"}," +
             /**//**/"\"parent\":null" +
             /**/"}";
-    private static final String EXPECTED_CYCLIC  = /**/
+    private static final String EXPECTED_CYCLIC     = /**/
             /**/"{" +
             /**//**/"\"id\":\"jaap\"," +
             /**//**/"\"children\":" +
@@ -109,6 +110,22 @@ public class IdTests {
             /**//**/"\"friend\":{\"id\":\"emma\"}," +
             /**//**/"\"parent\":null" +
             /**/"}";
+
+    @Test
+    public void idGettersTest() {
+        C testObject = C.demo();
+
+        String rendered = new ToJson(testObject).render();
+        Assertions.assertEquals(EXPECTED_ID_GETTERS, rendered);
+
+        C parsed = FromJsonGeneric.fromJson(C.class, rendered);
+        Assertions.assertEquals(123, parsed.getId());
+        Assertions.assertEquals(678, parsed.getChildren().get(0).getId());
+        Assertions.assertEquals(123, parsed.getChildren().get(1).getId());
+        Assertions.assertEquals(parsed, parsed.getChildren().get(1));
+        Assertions.assertEquals(123, parsed.getChildren().get(1).getId());
+        Assertions.assertEquals(345, parsed.getChildren().get(2).getId());
+    }
 
     @Test
     public void minimalTest() {
@@ -341,6 +358,41 @@ public class IdTests {
             public String get() {
                 return num2a.keySet().stream().sorted().map(n -> String.format("%03d_%s", n, num2a.get(n).id)).collect(Collectors.joining("\n"));
             }
+        }
+    }
+
+    @SuppressWarnings("unused")
+    public static class C {
+        private int     id;
+        private List<C> children;
+
+        @JsonId
+        public int getId() {
+            return id;
+        }
+
+        @JsonId
+        public void setId(int id) {
+            this.id = id;
+        }
+
+        public List<C> getChildren() {
+            return children;
+        }
+
+        public void setChildren(List<C> children) {
+            this.children = children;
+        }
+
+        public static C demo() {
+            C root = new C();
+            root.id = 123;
+            C child1 = new C();
+            child1.id = 678;
+            C child2 = new C();
+            child2.id     = 345;
+            root.children = List.of(child1, root, child2);
+            return root;
         }
     }
 
