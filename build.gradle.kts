@@ -24,7 +24,7 @@ repositories {
     maven("https://maven.pkg.github.com/ModelingValueGroup/sync-proxy")
 }
 dependencies {
-    testImplementation("org.modelingvalue:sync-proxy:2.0.7-BRANCHED")
+    testImplementation("org.modelingvalue:sync-proxy:2.1.0-BRANCHED")
 }
 publishing {
     publications {
