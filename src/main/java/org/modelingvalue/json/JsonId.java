@@ -15,43 +15,12 @@
 
 package org.modelingvalue.json;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public class FromJsonListMap extends FromJsonBase<Iterable<Object>, Map<String, Object>> {
-    public static Object fromJson(String s) {
-        return fromJson(s, new Config());
-    }
-
-    public static Object fromJson(String s, Config config) {
-        return new FromJsonListMap(s, config).parse();
-    }
-
-    protected FromJsonListMap(String input, Config config) {
-        super(input, config);
-    }
-
-    @Override
-    protected HashMap<String, Object> makeMap() {
-        return new HashMap<>();
-    }
-
-    @Override
-    protected Iterable<Object> makeArray() {
-        return new ArrayList<>();
-    }
-
-    @Override
-    protected Map<String, Object> makeMapEntry(Map<String, Object> m, Object key, Object value) {
-        m.put(key == null ? null : key.toString(), value);
-        return m;
-    }
-
-    @Override
-    protected Iterable<Object> makeArrayEntry(Iterable<Object> l, int index, Object o) {
-        ((List<Object>) l).add(o);
-        return l;
-    }
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.FIELD, ElementType.METHOD})
+public @interface JsonId {
 }

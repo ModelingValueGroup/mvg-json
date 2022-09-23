@@ -66,7 +66,7 @@ public class JsonCustomTests {
         }
 
         protected CountingTesterFromJson(String input) {
-            super(input);
+            super(input, new Config());
         }
 
         @Override
@@ -99,9 +99,9 @@ public class JsonCustomTests {
         }
 
         @Override
-        protected Void makeArrayEntry(Void l, Object o) {
+        protected Void makeArrayEntry(Void l, int index, Object o) {
             if (TestUtil.VERBOSE_TESTS) {
-                System.err.printf(">> %-14s: %3d/%3d  -  %s  o=%s\n", "makeArrayEntry", getLevel(), getIndex(), getPath(), o);
+                System.err.printf(">> %-14s: %3d/%3d  -  %s  o=%s\n", "makeArrayEntry", getLevel(), index, getPath(), o);
             }
             numArrayEntries++;
             countString(o);

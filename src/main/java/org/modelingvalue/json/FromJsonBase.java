@@ -25,6 +25,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     private static final String        NULL_STRING  = "null";
     private static final char          EOF_CHAR     = '\000';
     //
+    protected final      Config        config;
     private final        String        input;
     //
     private              int           i;
@@ -34,8 +35,9 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     private              int           index;
     private              Stack<Object> path;
 
-    protected FromJsonBase(String input) {
-        this.input = Objects.requireNonNull(input);
+    protected FromJsonBase(String input, Config config) {
+        this.input  = Objects.requireNonNull(input);
+        this.config = config;
     }
 
     protected Object parse() {
@@ -47,12 +49,13 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         begin();
         Object root = parseElement();
         if (!eof) {
-            throw error();
+            throw error("contents past end");
         }
         return end(root);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
+    @SuppressWarnings("EmptyMethod")
     protected void begin() {
     }
 
@@ -64,7 +67,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         return null;
     }
 
-    protected ARRAY_TYPE makeArrayEntry(ARRAY_TYPE l, Object o) {
+    protected ARRAY_TYPE makeArrayEntry(ARRAY_TYPE l, int index, Object o) {
         return l;
     }
 
@@ -88,7 +91,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         return m;
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "EmptyMethod"})
     protected void detectedWhitespace(int offset, Supplier<String> stringSupplier) {
     }
 
@@ -106,11 +109,11 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         return path;
     }
 
-    protected IllegalArgumentException error() {
+    protected IllegalArgumentException error(String message) {
         String pre   = input.substring(Math.max(0, i - 20), Math.min(i, input.length()));
-        String where = "<" + (eof ? "PAST END" : input.charAt(i)) + ">";
+        String where = "<" + (eof ? "" : input.charAt(i)) + ">";
         String post  = input.substring(Math.min(input.length(), i + 1), Math.min(input.length(), i + 20));
-        return new IllegalArgumentException("json syntax error (at index " + i + ": " + pre + where + post + ")");
+        return new IllegalArgumentException("json syntax error: " + message + " (at " + i + ": [" + pre + where + post + "])");
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -133,7 +136,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
 
     protected Object parseValue() {
         if (eof) {
-            throw error();
+            throw error("premature end");
         }
         switch (current) {
         case '{':
@@ -162,7 +165,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         case 'n'/*null*/:
             return parseNull();
         }
-        throw error();
+        throw error("unexpected character '" + current + "'");
     }
 
     protected Object parseMap() {
@@ -178,7 +181,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
                 Object key = makeMapKey(parseString());
                 skipWS();
                 if (current != ':') {
-                    throw error();
+                    throw error("expected ':'");
                 }
                 next();
                 skipWS();
@@ -194,7 +197,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
                 case '}':
                     break loop;
                 default:
-                    throw error();
+                    throw error("unexpected charecter '" + current + "'");
                 }
                 index++;
             }
@@ -216,7 +219,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
             A:
             while (true) {
                 path.push(index);
-                l = makeArrayEntry(l, parseValue());
+                l = makeArrayEntry(l, getIndex(), parseValue());
                 path.pop();
                 skipWS();
                 switch (current) {
@@ -227,7 +230,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
                 case ']':
                     break A;
                 default:
-                    throw error();
+                    throw error("unexpected charecter '" + current + "'");
                 }
                 index++;
             }
@@ -243,7 +246,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         next();
         while (true) {
             if (eof) {
-                throw error();
+                throw error("expected end");
             } else if (current == '\\') {
                 next();
                 switch (current) {
@@ -270,14 +273,14 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
                 case 'u':
                     next();
                     if (input.length() <= i + 4) {
-                        throw error();
+                        throw error("end of input in unicode sequence");
                     }
                     int hex = Integer.parseInt(input, i, i + 4, 16);
                     b.append((char) hex);
                     next(3);
                     break;
                 default:
-                    throw error();
+                    throw error("unexpected charecter '" + current + "'");
                 }
                 next();
             } else if (current == '"') {
@@ -330,7 +333,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
             || !('0' <= c0 && c0 <= '9')
             || (c0 == '0' && c1 != null && c1 != '.') && c1 != 'e' && c1 != 'E') {
             i = start;
-            throw error();
+            throw error("unexpected character in number literal '" + c0 + "'");
         }
         if (isDouble) {
             //noinspection RedundantCast ## IntelliJ bug flags this as redunant: https://youtrack.jetbrains.com/issue/IDEA-251055
@@ -341,25 +344,28 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         }
     }
 
+    @SuppressWarnings("SameReturnValue")
     protected Object parseTrue() {
         if (!input.startsWith(TRUE_STRING, i)) {
-            throw error();
+            throw error("'true' expected");
         }
         next(TRUE_STRING.length());
         return true;
     }
 
+    @SuppressWarnings("SameReturnValue")
     protected Object parseFalse() {
         if (!input.startsWith(FALSE_STRING, i)) {
-            throw error();
+            throw error("'false' expected");
         }
         next(FALSE_STRING.length());
         return false;
     }
 
+    @SuppressWarnings("SameReturnValue")
     protected Object parseNull() {
         if (!input.startsWith(NULL_STRING, i)) {
-            throw error();
+            throw error("'null' expected");
         }
         next(NULL_STRING.length());
         return null;

@@ -71,6 +71,7 @@ public class JsonIntrospectionTests {
 
         ProbeA probea = new ProbeA();
 
+        @SuppressWarnings("SameReturnValue")
         String getName() {
             return "xyzzy";
         }

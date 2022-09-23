@@ -26,7 +26,7 @@ import static java.time.Duration.ofSeconds;
 
 @SuppressWarnings("BusyWait")
 public class TestUtil {
-    public static final boolean VERBOSE_TESTS = Boolean.getBoolean("VERBOSE_TESTS");
+    public static final boolean VERBOSE_TESTS = true;//Boolean.getBoolean("VERBOSE_TESTS");
 
     public static void assertEventually(String name, Executable executable) throws Throwable {
         assertEventually(name, ofSeconds(5), ofMillis(50), executable);

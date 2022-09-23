@@ -17,12 +17,13 @@ package org.modelingvalue.json.protocol;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.RepeatedTest;
 import org.modelingvalue.json.TestUtil;
 
 import java.time.Duration;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -49,7 +50,7 @@ public class ProtocolTests {
         tph = null;
     }
 
-    @Test
+    @RepeatedTest(4)
     public void onePingTest() {
         assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
             assertEquals(0L, tph.getPingCount());
@@ -62,7 +63,7 @@ public class ProtocolTests {
         });
     }
 
-    @Test
+    @RepeatedTest(4)
     public void manyPingTest() {
         assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
             for (int i = 0; i < 100; i++) {
@@ -72,7 +73,7 @@ public class ProtocolTests {
         });
     }
 
-    @Test
+    @RepeatedTest(4)
     public void seqNumberTest() {
         assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
             Message message = tph.sendAndReceiveSingle("getPingCount", "pingCount", null);
@@ -96,20 +97,20 @@ public class ProtocolTests {
         });
     }
 
-    @Test
+    @RepeatedTest(4)
     public void unknownTest() {
         assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
             tph.send("unknown", "@@@");
-            TestUtil.assertEventually("unknown is handled", () -> {
+            TestUtil.assertEventually("unknown is handled", () -> assertDoesNotThrow(() -> {
                 Message unknown = tph.peer.getLastMessageSingle("unknown");
                 assertNotNull(unknown);
                 assertEquals(unknown.keyword(), "unknown");
                 assertEquals(unknown.json(), "@@@");
-            });
+            }));
         });
     }
 
-    @Test
+    @RepeatedTest(4)
     public void magicTest() {
         //noinspection CodeBlock2Expr
         assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
@@ -117,7 +118,7 @@ public class ProtocolTests {
         });
     }
 
-    @Test
+    @RepeatedTest(4)
     public void shutdownTest() {
         assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
             tph.ping();
@@ -131,7 +132,7 @@ public class ProtocolTests {
         });
     }
 
-    @Test
+    @RepeatedTest(4)
     public void pingerTest() {
         assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
             TestUtil.waitForSinglePeer(tph);

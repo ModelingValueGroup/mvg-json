@@ -15,85 +15,124 @@
 
 package org.modelingvalue.json;
 
-import org.modelingvalue.json.GenericsUtil.Maker;
-import org.modelingvalue.json.GenericsUtil.SubSetter;
-import org.modelingvalue.json.GenericsUtil.TypeInfo;
-
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
+import java.util.function.Consumer;
+
+import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.MAY_BE_ID;
+import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.MAY_BE_MORE;
+import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.MAY_NOT_BE_MORE;
 
 public class FromJsonGeneric extends FromJsonBase<Object, Object> {
-    @SuppressWarnings("unchecked")
     public static <T> T fromJson(Type t, String s) {
-        return (T) new FromJsonGeneric(t, s).parse();
+        return fromJson(t, s, new Config());
     }
 
-    private final Stack<TypeInfo>     typeInfoStack = new Stack<>();
-    private final Map<Type, TypeInfo> typeInfoMap   = new HashMap<>();
-    private       boolean             ignoreSFOs;
-
-    public FromJsonGeneric(Type t, String input) {
-        super(input);
-        typeInfoStack.push(addToTypeInfoMap(t));
+    @SuppressWarnings("unchecked")
+    public static <T> T fromJson(Type t, String s, Config config) {
+        return (T) new FromJsonGeneric(t, s, config).parse();
     }
 
-    @SuppressWarnings("unused")
-    public void setIgnoreSFOs(boolean b) {
-        ignoreSFOs = b;
+    private final Stack<TypeInfo>     typeInfoStack    = new Stack<>();
+    private final Map<Type, TypeInfo> typeInfoMap      = new HashMap<>();
+    private final Consumer<TypeInfo>  topStackReplacer = replacement -> {
+        typeInfoStack.pop();
+        typeInfoStack.push(replacement);
+    };
+    private final Map<Object, Object> id2objectMap     = new HashMap<>();
+
+    enum IdAcceptState {
+        MAY_BE_MORE, MAY_BE_ID, MAY_NOT_BE_MORE
     }
 
-    private TypeInfo addToTypeInfoMap(Type type) {
-        return typeInfoMap.computeIfAbsent(type, t -> GenericsUtil.makeTypeInfo(t, ignoreSFOs));
+    private IdAcceptState idAcceptState = MAY_BE_MORE;
+
+    public FromJsonGeneric(Type t, String input, Config config) {
+        super(input, config);
+        pushType(t);
     }
 
-    ///////////////////////////////////////
-    @Override
-    protected Object makeMap() {
+    private void pushType(Type subType) {
+        TypeInfo typeInfo = typeInfoMap.computeIfAbsent(subType, t -> TypeInfo.makeTypeInfo(t, config, topStackReplacer));
+        typeInfoStack.push(typeInfo);
+    }
+
+    private Object makeObject() {
         Stack<Object> path = getPath();
         if (!path.isEmpty()) {
             Type subType = typeInfoStack.peek().getSubType(path.peek());
-            typeInfoStack.push(addToTypeInfoMap(subType));
+            pushType(subType);
         }
-        Maker maker = typeInfoStack.peek().getMaker();
-        return maker.make();
+        return typeInfoStack.peek().getMaker().make();
     }
 
-    @Override
-    protected Object makeMapEntry(Object m, Object key, Object value) {
-        SubSetter subSetter = typeInfoStack.peek().getSubSetter(key);
-        return subSetter.set(m, key, value);
-    }
-
-    @Override
-    protected Object closeMap(Object m) {
+    private Object closeObject(Object m) {
         typeInfoStack.pop();
         return m;
     }
 
     ///////////////////////////////////////
     @Override
-    protected Object makeArray() {
-        Stack<Object> path = getPath();
-        if (!path.isEmpty()) {
-            Type subType = typeInfoStack.peek().getSubType(path.peek());
-            typeInfoStack.push(addToTypeInfoMap(subType));
+    protected Object makeMap() {
+        if (idAcceptState == MAY_NOT_BE_MORE) {
+            throw error("id references must be the only field set when referencing a previous object");
         }
-        Maker maker = typeInfoStack.peek().getMaker();
-        return maker.make();
+        idAcceptState = MAY_BE_ID;
+        return makeObject();
     }
 
     @Override
-    protected Object makeArrayEntry(Object a, Object value) {
-        int       index     = getIndex();
+    protected Object makeMapEntry(Object m, Object key, Object value) {
+        TypeInfo typeInfo = typeInfoStack.peek();
+        switch (idAcceptState) {
+        case MAY_BE_ID:
+            idAcceptState = MAY_BE_MORE;
+            if (typeInfo.isIdField(key.toString())) {
+                final Object mm = m;
+                m = id2objectMap.computeIfAbsent(value, __ -> mm);
+                if (m != mm) {
+                    idAcceptState = MAY_NOT_BE_MORE;
+                }
+            }
+            break;
+        case MAY_BE_MORE:
+            if (typeInfo.isIdField(key.toString())) {
+                final Object mm = m;
+                m = id2objectMap.computeIfAbsent(value, __ -> mm);
+                if (m != mm) {
+                    throw error("id references must be the only field present when referencing a previous object: found " + key + ": " + value);
+                }
+            }
+            break;
+        case MAY_NOT_BE_MORE:
+            throw error("id references must be the only field present when referencing a previous object: found " + key + ": " + value);
+        }
+        SubSetter subSetter = typeInfo.getSubSetter(key);
+        return subSetter.set(m, key, value);
+    }
+
+    @Override
+    protected Object closeMap(Object m) {
+        idAcceptState = MAY_BE_MORE;
+        return closeObject(m);
+    }
+    ///////////////////////////////////////
+
+    @Override
+    protected Object makeArray() {
+        return makeObject();
+    }
+
+    @Override
+    protected Object makeArrayEntry(Object a, int index, Object value) {
         SubSetter subSetter = typeInfoStack.peek().getSubSetter(index);
         return subSetter.set(a, index, value);
     }
 
     @Override
     protected Object closeArray(Object l) {
-        typeInfoStack.pop();
-        return l;
+        return closeObject(l);
     }
 }
