@@ -69,6 +69,9 @@ public class JsonIntrospectionTests {
         final static protected int aap15 = 1015;
         final static public    int aap16 = 1015;
 
+        @JsonIgnore
+        int aap_ignore = 666;
+
         ProbeA probea = new ProbeA();
 
         @SuppressWarnings("SameReturnValue")

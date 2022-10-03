@@ -36,6 +36,7 @@ public class U {
                                                                                   && !Modifier.isVolatile(f.getModifiers())//
                                                                                   && !Modifier.isNative(f.getModifiers())//
                                                                                   && !Modifier.isTransient(f.getModifiers())//
+                                                                                  && f.getAnnotation(JsonIgnore.class) == null
                                                                                   && (Modifier.isPublic(f.getModifiers()) || !f.getDeclaringClass().getPackage().getName().startsWith("java."));
     private static final Predicate<Method> GET_METHOD_INTROSPECTION_FILTER = m -> !m.isSynthetic()//
                                                                                   && m.getParameterCount() == 0//
@@ -45,6 +46,7 @@ public class U {
                                                                                   && !Modifier.isVolatile(m.getModifiers())//
                                                                                   && !Modifier.isNative(m.getModifiers())//
                                                                                   && !Modifier.isTransient(m.getModifiers())//
+                                                                                  && m.getAnnotation(JsonIgnore.class) == null
                                                                                   && (Modifier.isPublic(m.getModifiers()) || !m.getDeclaringClass().getPackage().getName().startsWith("java."))//
                                                                                   && m.getName().matches("^(get|is)[A-Z].*");
 
@@ -55,6 +57,7 @@ public class U {
                                                                                   && !Modifier.isVolatile(m.getModifiers())//
                                                                                   && !Modifier.isNative(m.getModifiers())//
                                                                                   && !Modifier.isTransient(m.getModifiers())//
+                                                                                  && m.getAnnotation(JsonIgnore.class) == null
                                                                                   && (Modifier.isPublic(m.getModifiers()) || !m.getDeclaringClass().getPackage().getName().startsWith("java."))//
                                                                                   && m.getName().matches("^set[A-Z].*");
 
