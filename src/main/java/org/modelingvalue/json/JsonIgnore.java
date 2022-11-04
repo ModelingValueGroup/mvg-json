@@ -13,26 +13,14 @@
 //     Arjan Kok, Carel Bast                                                                                           ~
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-defaultTasks("mvgCorrector", "test", "publish", "mvgTagger")
+package org.modelingvalue.json;
 
-plugins {
-    `java-library`
-    `maven-publish`
-    id("org.modelingvalue.gradle.mvgplugin") version "1.1.3"
-}
-repositories {
-    maven("https://maven.pkg.github.com/ModelingValueGroup/sync-proxy")
-}
-dependencies {
-    testImplementation("org.modelingvalue:sync-proxy:2.1.1-BRANCHED")
-}
-publishing {
-    publications {
-        create<MavenPublication>("mvg-json") {
-            from(components["java"])
-        }
-    }
-}
-tasks.withType<JavaCompile> {
-    options.compilerArgs.add("-Xlint:unchecked")
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.FIELD, ElementType.METHOD})
+public @interface JsonIgnore {
 }
