@@ -40,7 +40,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         this.config = config;
     }
 
-    protected Object parse() {
+    public Object parse() {
         i     = 0;
         level = 0;
         index = 0;
