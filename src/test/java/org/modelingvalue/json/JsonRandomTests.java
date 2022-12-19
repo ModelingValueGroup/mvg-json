@@ -29,21 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class JsonRandomTests {
     @RepeatedTest(10)
-    public void prettify() {
-        String json = JsonCustomTests.readData("test.json");
-
-        long t0 = System.currentTimeMillis();
-        for (int i = 0; i < 100; i++) {
-            json = JsonPrettyfier.pretty(json);
-        }
-        long delta = System.currentTimeMillis() - t0;
-
-        double mbps = (100.0 * 1000.0 * json.length()) / (1024.0 * 1024.0 * delta);
-        System.err.printf("prettify-test:                  %7.2f Mb/s json\n", mbps);
-        assertTrue(10.0 < mbps, "<10 Mb/s (you either have a very slow machine or some change has impacted the performance)");
-    }
-
-    @RepeatedTest(10)
     public void oneBigObjectToJson() {
         long   t0;
         long   dt;

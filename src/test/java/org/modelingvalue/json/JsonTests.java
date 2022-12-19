@@ -17,18 +17,18 @@ package org.modelingvalue.json;
 
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.modelingvalue.json.TestObjects.AAA;
+import org.modelingvalue.json.TestObjects.SUB;
+import org.modelingvalue.json.TestObjects.XXX;
+import org.modelingvalue.json.TestObjects.YYY;
 
-import java.io.Serializable;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Currency;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.modelingvalue.json.Json.fromJson;
 import static org.modelingvalue.json.Json.toJson;
 
+@SuppressWarnings("UnnecessaryUnicodeEscape")
 public class JsonTests {
     @RepeatedTest(1)
     public void primitivesToJson() {
@@ -53,14 +54,14 @@ public class JsonTests {
         assertEquals("12.0", toJson((float) 12));
         assertEquals("12.0", toJson((double) 12));
         assertEquals("-1.26E-39", toJson(-12.6e-40));
-        assertEquals(quoted("@"), toJson('@'));
-        assertEquals(quoted("\\u0000"), toJson('\000'));
-        assertEquals(quoted("\\u0000"), toJson('\u0000'));
-        assertEquals(quoted("·"), toJson('\u00b7'));
-        assertEquals(quoted("\\\""), toJson('"'));
-        assertEquals(quoted("'"), toJson('\''));
+        assertEquals(TestObjects.quoted("@"), toJson('@'));
+        assertEquals(TestObjects.quoted("\\u0000"), toJson('\000'));
+        assertEquals(TestObjects.quoted("\\u0000"), toJson('\u0000'));
+        assertEquals(TestObjects.quoted("·"), toJson('\u00b7'));
+        assertEquals(TestObjects.quoted("\\\""), toJson('"'));
+        assertEquals(TestObjects.quoted("'"), toJson('\''));
         assertEquals("true", toJson(true));
-        assertEquals(quoted("blabla-·-\\u0000\\\"-\\t\\r\\n\\f\\b/\\\\-\\u2022"), toJson("blabla-\u00b7-\000\"-\t\r\n\f\b/\\-\u2022"));
+        assertEquals(TestObjects.quoted("blabla-·-\\u0000\\\"-\\t\\r\\n\\f\\b/\\\\-\\u2022"), toJson("blabla-\u00b7-\000\"-\t\r\n\f\b/\\-\u2022"));
     }
 
     @RepeatedTest(1)
@@ -81,7 +82,7 @@ public class JsonTests {
         assertEquals("[2711.9,\"EUR\",21]", toJson(new Object[]{2711.9, "EUR", 21}));
 
         assertEquals("[1,2,3]", toJson(new ArrayList<>(Arrays.asList(1, 2, 3))));
-        assertEquals("[1,2,3,[1,2,3,[1,2,3]]]", toJson(getTestObject1()));
+        assertEquals("[1,2,{\"three\":3},[[1,2,3]]]", toJson(TestObjects.getTestObject1()));
         assertEquals("[1,2,3]", toJson(Arrays.asList(1, 2, 3)));
         assertEquals("[1,\"a\",3,12.6,\"q\"]", toJson(Arrays.asList(1, "a", 3L, 12.6, 'q')));
     }
@@ -93,13 +94,13 @@ public class JsonTests {
         assertEquals("{\"a\":1,\"b\":2}",
                 toJson(Map.of("a", 1, "b", 2)));
         assertEquals("{\"a\":\"a\"}",
-                toJson(makeMap(new SimpleEntry<>("a", "a"))));
+                toJson(TestObjects.makeMap(new SimpleEntry<>("a", "a"))));
         assertEquals("{\"a\":null,\"b\":null,\"c\":null}",
-                toJson(makeMap(new SimpleEntry<>("a", null), new SimpleEntry<>("b", null), new SimpleEntry<>("c", null))));
-        assertThrows(NullPointerException.class, () -> toJson(makeMap(new SimpleEntry<>(null, "a"), new SimpleEntry<>("b", "b"), new SimpleEntry<>("c", "c"))));
-        assertThrows(NullPointerException.class, () -> toJson(makeMap(new SimpleEntry<>(null, null), new SimpleEntry<>("null", null))));
-        assertThrows(NullPointerException.class, () -> toJson(makeMap(new SimpleEntry<>(null, null))));
-        assertThrows(NullPointerException.class, () -> toJson(makeMap(new SimpleEntry<>(null, "a"))));
+                toJson(TestObjects.makeMap(new SimpleEntry<>("a", null), new SimpleEntry<>("b", null), new SimpleEntry<>("c", null))));
+        assertThrows(NullPointerException.class, () -> toJson(TestObjects.makeMap(new SimpleEntry<>(null, "a"), new SimpleEntry<>("b", "b"), new SimpleEntry<>("c", "c"))));
+        assertThrows(NullPointerException.class, () -> toJson(TestObjects.makeMap(new SimpleEntry<>(null, null), new SimpleEntry<>("null", null))));
+        assertThrows(NullPointerException.class, () -> toJson(TestObjects.makeMap(new SimpleEntry<>(null, null))));
+        assertThrows(NullPointerException.class, () -> toJson(TestObjects.makeMap(new SimpleEntry<>(null, "a"))));
         assertEquals("{\"1\":1,\"b\":2}",
                 toJson(Map.of(1, 1, "b", 2)));
         assertEquals("{\"EUR\":1.3,\"SVC\":13.67}",
@@ -108,29 +109,6 @@ public class JsonTests {
                 toJson(Map.of(Currency.getInstance("EUR"), 21, Currency.getInstance("SVC"), new Object())));
         assertEquals("{\"EUR\":{\"currencyCode\":\"EUR\",\"defaultFractionDigits\":2,\"displayName\":\"Euro\",\"numericCode\":978,\"numericCodeAsString\":\"978\",\"symbol\":\"\\u20AC\"},\"SVC\":{}}",
                 toJson(Map.of(Currency.getInstance("EUR"), Currency.getInstance("EUR"), Currency.getInstance("SVC"), new Object())));
-    }
-
-    @RepeatedTest(1)
-    public void prettyJson() {
-        assertEquals("[\n]", JsonPrettyfier.pretty(toJson(List.of())));
-        assertEquals("[\n  [\n  ]\n]", JsonPrettyfier.pretty(toJson(List.of(List.of()))));
-        assertEquals("[\n  [\n  ],\n  [\n  ]\n]", JsonPrettyfier.pretty(toJson(List.of(List.of(), List.of()))));
-
-        assertEquals("{\n}", JsonPrettyfier.pretty(toJson(Map.of())));
-        assertEquals("{\n  \"a\": [\n  ]\n}", JsonPrettyfier.pretty(toJson(Map.of("a", List.of()))));
-        assertEquals("{\n  \"a\": {\n  },\n  \"b\": [\n  ]\n}", JsonPrettyfier.pretty(toJson(Map.of("a", Map.of(), "b", List.of()))));
-
-        assertEquals("{\n  \"EUR\": 1.3,\n  \"SVC\": 13.67\n}",
-                JsonPrettyfier.pretty(toJson(Map.of(Currency.getInstance("EUR"), 1.3, Currency.getInstance("SVC"), 13.67))));
-        assertEquals("[\n  1,\n  2,\n  3,\n  [\n    1,\n    2,\n    3,\n    [\n      1,\n      2,\n      3\n    ]\n  ]\n]",
-                JsonPrettyfier.pretty(toJson(getTestObject1())));
-        assertEquals(
-                "[^#1,^#2,^#3,^#[^##1,^##2,^##3,^##[^###1,^###2,^###3^##]^#]^]",
-                JsonPrettyfier.pretty(toJson(getTestObject1()), "#", "^"));
-        assertEquals(
-                JsonPrettyfier.pretty(toJson(getTestObject1())),
-                JsonPrettyfier.pretty(JsonPrettyfier.pretty(JsonPrettyfier.pretty(JsonPrettyfier.pretty(toJson(getTestObject1())))))
-        );
     }
 
     @Test
@@ -219,23 +197,23 @@ public class JsonTests {
         assertEquals(-0.0, fromJson("-0e-2"));
         assertEquals(0.0, fromJson("0e-2"));
 
-        assertEquals("@", fromJson(quoted("@")));
-        assertEquals("\000", fromJson(quoted("\\u0000")));
-        assertEquals("\u0000", fromJson(quoted("\\u0000")));
-        assertEquals("\ubaff", fromJson(quoted("\\ubaff")));
-        assertEquals("\u00b7", fromJson(quoted("·")));
-        assertEquals("\"", fromJson(quoted("\\\"")));
-        assertEquals("'", fromJson(quoted("'")));
-        assertEquals("blabla-\u00b7-\000\"-\t\r\n\f\b/\\-\u2022", fromJson(quoted("blabla-·-\\u0000\\\"-\\t\\r\\n\\f\\b\\/\\\\-\\u2022")));
+        assertEquals("@", fromJson(TestObjects.quoted("@")));
+        assertEquals("\000", fromJson(TestObjects.quoted("\\u0000")));
+        assertEquals("\u0000", fromJson(TestObjects.quoted("\\u0000")));
+        assertEquals("\ubaff", fromJson(TestObjects.quoted("\\ubaff")));
+        assertEquals("\u00b7", fromJson(TestObjects.quoted("·")));
+        assertEquals("\"", fromJson(TestObjects.quoted("\\\"")));
+        assertEquals("'", fromJson(TestObjects.quoted("'")));
+        assertEquals("blabla-\u00b7-\000\"-\t\r\n\f\b/\\-\u2022", fromJson(TestObjects.quoted("blabla-·-\\u0000\\\"-\\t\\r\\n\\f\\b\\/\\\\-\\u2022")));
     }
 
     @Test
     public void arraysFromJson() {
         assertThrows(IllegalArgumentException.class, () -> fromJson("[1,2 3,[1,2,3,[1,2,3]]]"));
-        assertThrows(IllegalArgumentException.class, () -> fromJson("[1,2 3,[1,2,3,[1,2,3]],]"));
+        assertThrows(IllegalArgumentException.class, () -> fromJson("[1,2,3,[1,2,3,[1,2,3]],]"));
 
-        assertEquals(getTestObject1(), fromJson("[1,2,3,[1,2,3,[1,2,3]]]"));
-        assertEquals(getTestObject1(), fromJson("   [\n  1,2,\n  3,[\r\t\n    1,\n    2,\n    3,\n    [\n      1,\n      2,\n      3\n    ]\n  ]\n]\n\n\n"));
+        assertEquals(TestObjects.getTestObject1(), fromJson("[1,2,{\"three\":3},[[1,2,3]]]"));
+        assertEquals(TestObjects.getTestObject1(), fromJson("   [\n  1,2,\n  {      \n\n\"three\"   \n:  \n3},[\r\t\n    \n    [\n      1,\n      2,\n      3\n    ]\n  ]\n]\n\n\n"));
     }
 
     @Test
@@ -251,19 +229,19 @@ public class JsonTests {
     public void objectFromJson() {
         String json_1 = "{" +
                         "\"anAbstract\":{" +
-                        "    \"$type\":\"org.modelingvalue.json.JsonTests$XXX# woef\"," +
+                        "    \"$type\":\"org.modelingvalue.json.TestObjects$XXX# woef\"," +
                         "    \"field\":5555," +
                         "    \"shared_field\":4715," +
                         "    \"subAbstract\":{" +
-                        "        \"$type\":\"org.modelingvalue.json.JsonTests$YYY# subsubsub\"," +
+                        "        \"$type\":\"org.modelingvalue.json.TestObjects$YYY# subsubsub\"," +
                         "        \"field\":666," +
                         "        \"shared_field\":4716" +
                         "    }" +
                         "}," +
                         // TODO
                         // "\"arrayOfAbstract\":[" +
-                        // "    {\"$type\":\"org.modelingvalue.json.JsonTests$XXX# burp\",\"field\":3333,\"shared_field\":4713}," +
-                        // "    {\"$type\":\"org.modelingvalue.json.JsonTests$YYY# why?\",\"field\":4444,\"shared_field\":4714}" +
+                        // "    {\"$type\":\"org.modelingvalue.json.TestObjects$XXX# burp\",\"field\":3333,\"shared_field\":4713}," +
+                        // "    {\"$type\":\"org.modelingvalue.json.TestObjects$YYY# why?\",\"field\":4444,\"shared_field\":4714}" +
                         // "],"+
                         "\"b-o\":true," +
                         "\"b_y+t#e\":44," +
@@ -276,8 +254,8 @@ public class JsonTests {
                         "\"li2\":[{\"id\":1},{\"id\":2,\"sub\":{\"id\":21}},{\"id\":3,\"sub\":{\"id\":31}}]," +
                         "\"li3\":[[{\"id\":1}],[{\"id\":2}]]," +
                         "\"listOfAbstract\":[" +
-                        "    {\"$type\":\"org.modelingvalue.json.JsonTests$XXX# burp\",\"field\":1111,\"shared_field\":4711}," +
-                        "    {\"$type\":\"org.modelingvalue.json.JsonTests$YYY# why?\",\"field\":2222,\"shared_field\":4712}" +
+                        "    {\"$type\":\"org.modelingvalue.json.TestObjects$XXX# burp\",\"field\":1111,\"shared_field\":4711}," +
+                        "    {\"$type\":\"org.modelingvalue.json.TestObjects$YYY# why?\",\"field\":2222,\"shared_field\":4712}" +
                         "]," +
                         "\"lo\":1234567890123456789," +
                         "\"ma\":{\"nope\":false,\"sure\":true,\"yes\":true}," +
@@ -342,171 +320,5 @@ public class JsonTests {
         String json_3 = toJson(fromJson(AAA.class, json_2));
 
         assertEquals(json_2, json_3);
-    }
-
-    //############################################################################################################################################################
-    //############################################################################################################################################################
-    //############################################################################################################################################################
-    public static class SUB {
-        int id;
-        SUB sub;
-
-        @SuppressWarnings("unused")
-        public SUB() {
-        }
-
-        public SUB(int id, SUB sub) {
-            this.id  = id;
-            this.sub = sub;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-
-            SUB sub1 = (SUB) o;
-
-            if (id != sub1.id) {
-                return false;
-            }
-            return Objects.equals(sub, sub1.sub);
-        }
-
-        @Override
-        public int hashCode() {
-            int result = id;
-            result = 31 * result + (sub != null ? sub.hashCode() : 0);
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "SUB[" + id + (sub == null ? "" : ", " + sub) + "]";
-        }
-    }
-
-    @SuppressWarnings("CanBeFinal")
-    public static class NUM {
-        int num;
-
-        public NUM(int num) {
-            this.num = num;
-        }
-    }
-
-    @SuppressWarnings("CanBeFinal")
-    public static class BOOL {
-        boolean bool;
-
-        public BOOL(boolean bool) {
-            this.bool = bool;
-        }
-    }
-
-    @SuppressWarnings("CanBeFinal")
-    public static class STRING {
-        String string;
-
-        public STRING(String string) {
-            this.string = string;
-        }
-    }
-
-    @SuppressWarnings("unused")
-    public static abstract class Base {
-        String $type;
-
-        @JsonClassSelector
-        public static Class<?> selectClassFrom(String name, Object value) throws ClassNotFoundException {
-            if (!name.equals("$type")) {
-                throw new ClassNotFoundException("json class not found: '$type' field expected as selector field name but found " + name + " (value=" + value + ")");
-            }
-            if (!(value instanceof String)) {
-                throw new ClassNotFoundException("json class not found: '$type' field should be String but is " + (value == null ? "<null>" : value.getClass().getSimpleName()) + " (value=" + value + ")");
-            }
-            return Class.forName(((String) value).replaceAll("#.*", ""));
-        }
-    }
-
-    public static abstract class Abstract extends Base {
-        int shared_field;
-    }
-
-    public static class XXX extends Abstract {
-        int field;
-        @SuppressWarnings("unused")
-        Abstract subAbstract;
-    }
-
-    public static class YYY extends Abstract {
-        int field;
-    }
-
-    @SuppressWarnings("unused")
-    public static class AAA {
-        NUM    num;
-        BOOL   bool;
-        STRING string;
-        @JsonName("b-o")
-        boolean bo;
-        @JsonName("b_y+t#e")
-        byte    by;
-        short  sh;
-        int    in;
-        long   lo;
-        double db;
-        float  fl;
-        String st;
-        char   ch;
-        SUB    ob1;
-        SUB    ob2;
-
-        List<Integer>        li1;
-        List<SUB>            li2;
-        List<Set<SUB>>       li3;
-        Set<Short>           ss;
-        Map<String, Boolean> ma;
-        List<Abstract>       listOfAbstract;
-        Abstract             anAbstract;
-        //TODO
-        // Abstract[]           arrayOfAbstract;
-    }
-
-    public List<Serializable> getTestObject1() {
-        return new ArrayList<>(
-                Arrays.asList(
-                        1L,
-                        2L,
-                        3L,
-                        new ArrayList<>(Arrays.asList(
-                                1L,
-                                2L,
-                                3L,
-                                new ArrayList<>(Arrays.asList(
-                                        1L,
-                                        2L,
-                                        3L
-                                ))
-                        ))
-                ));
-    }
-
-    private static Map<Object, Object> makeMap(Entry<?, ?>... entries) {
-        Map<Object, Object> map = new HashMap<>();
-        for (Entry<?, ?> entry : entries) {
-            if (map.put(entry.getKey(), entry.getValue()) != null) {
-                throw new IllegalStateException("Duplicate key");
-            }
-        }
-        return map;
-    }
-
-    private static String quoted(String s) {
-        return '"' + s + '"';
     }
 }
