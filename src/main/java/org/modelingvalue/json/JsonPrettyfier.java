@@ -1,5 +1,5 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// (C) Copyright 2018-2022 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
+// (C) Copyright 2018-2023 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
 //                                                                                                                     ~
 // Licensed under the GNU Lesser General Public License v3.0 (the 'License'). You may not use this file except in      ~
 // compliance with the License. You may obtain a copy of the License at: https://choosealicense.com/licenses/lgpl-3.0  ~
@@ -20,35 +20,38 @@ import java.util.Map;
 
 public class JsonPrettyfier {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
-    public static String terse(String json) {
-        return new JsonPrettyfier(json).get();
-    }
-
     public static String pretty(String json) {
-        return pretty(json, "  ", "\n");
+        return prettify(json, "  ", "\n", " ", false);
     }
 
-    public static String pretty(String json, String indent, String eol) {
-        return new JsonPrettyfier(terse(json), indent, eol).get();
+    public static String prettyStrict(String json) {
+        return prettify(json, "  ", "\n", " ", true);
+    }
+
+    public static String terse(String json) {
+        return prettify(json, null, null, null, true);
+    }
+
+    public static String prettify(String json, String indent, String eol, String afterColon, boolean strict) {
+        return new JsonPrettyfier(json, indent, eol, afterColon, strict).get();
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     private final String               indentString;
     private final String               eolString;
+    private final String               colon;
+    private final boolean              strict;
     private final char[]               charArray;
     private final StringBuilder        b           = new StringBuilder();
     private final Map<Integer, String> indentCache = new HashMap<>();
     private final boolean              indentEnabled;
     private       int                  indent;
-    private       boolean              inQuote;
 
-    private JsonPrettyfier(String json) {
-        this(json, null, null);
-    }
-
-    private JsonPrettyfier(String json, String indentString, String eolString) {
+    private JsonPrettyfier(String json, String indentString, String eolString, String afterColon, boolean strict) {
         this.indentString = indentString;
         this.eolString    = eolString;
+        this.colon        = ":" + (afterColon == null ? "" : afterColon);
+        this.strict       = strict;
         charArray         = json.toCharArray();
         indentEnabled     = indentString != null;
         if ((indentString == null) != (eolString == null)) {
@@ -58,9 +61,48 @@ public class JsonPrettyfier {
 
 
     private String get() {
+        boolean inQuote    = false;
+        boolean inOneLiner = false;
         for (int i = 0; i < charArray.length; i++) {
             char c = charArray[i];
-            if (inQuote) {
+            if (!inQuote) {
+                switch (c) {
+                case '"':
+                    b.append(c);
+                    inQuote = true;
+                    break;
+                case '{':
+                case '[':
+                    b.append(c);
+                    inOneLiner = !strict && isOneLiner(i + 1);
+                    if (!inOneLiner) {
+                        appendIndent(+1);
+                    }
+                    break;
+                case '}':
+                case ']':
+                    if (!inOneLiner) {
+                        appendIndent(-1);
+                    }
+                    inOneLiner = false;
+                    b.append(c);
+                    break;
+                case ',':
+                    b.append(c);
+                    appendIndent(0);
+                    break;
+                case ':':
+                    b.append(colon);
+                    break;
+                case ' ':
+                case '\r':
+                case '\n':
+                case '\t':
+                    break;
+                default:
+                    b.append(c);
+                }
+            } else {
                 switch (c) {
                 case '\\':
                     b.append(c);
@@ -74,40 +116,40 @@ public class JsonPrettyfier {
                 default:
                     b.append(c);
                 }
-            } else {
+            }
+        }
+        return b.toString();
+    }
+
+    private boolean isOneLiner(int i) {
+        boolean inQuote = false;
+        for (; i < charArray.length; i++) {
+            char c = charArray[i];
+            if (!inQuote) {
                 switch (c) {
                 case '"':
-                    b.append(c);
                     inQuote = true;
                     break;
                 case '{':
                 case '[':
-                    b.append(c);
-                    appendIndent(+1);
-                    break;
+                case ',':
+                    return false;
                 case '}':
                 case ']':
-                    appendIndent(-1);
-                    b.append(c);
+                    return true;
+                }
+            } else {
+                switch (c) {
+                case '\\':
+                    ++i;
                     break;
-                case ',':
-                    b.append(c);
-                    appendIndent(0);
+                case '"':
+                    inQuote = false;
                     break;
-                case ':':
-                    b.append(": ");
-                    break;
-                case ' ':
-                case '\r':
-                case '\n':
-                case '\t':
-                    break;
-                default:
-                    b.append(c);
                 }
             }
         }
-        return b.toString();
+        return false;
     }
 
     private void appendIndent(int move) {
