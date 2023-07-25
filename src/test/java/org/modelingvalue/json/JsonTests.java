@@ -22,21 +22,12 @@ import org.modelingvalue.json.TestObjects.SUB;
 import org.modelingvalue.json.TestObjects.XXX;
 import org.modelingvalue.json.TestObjects.YYY;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.AbstractMap.SimpleEntry;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Currency;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertIterableEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.modelingvalue.json.Json.fromJson;
 import static org.modelingvalue.json.Json.toJson;
 
@@ -90,25 +81,25 @@ public class JsonTests {
     @RepeatedTest(1)
     public void mapsToJson() {
         assertEquals("{}",
-                toJson(Map.of()));
+                     toJson(Map.of()));
         assertEquals("{\"a\":1,\"b\":2}",
-                toJson(Map.of("a", 1, "b", 2)));
+                     toJson(Map.of("a", 1, "b", 2)));
         assertEquals("{\"a\":\"a\"}",
-                toJson(TestObjects.makeMap(new SimpleEntry<>("a", "a"))));
+                     toJson(TestObjects.makeMap(new SimpleEntry<>("a", "a"))));
         assertEquals("{\"a\":null,\"b\":null,\"c\":null}",
-                toJson(TestObjects.makeMap(new SimpleEntry<>("a", null), new SimpleEntry<>("b", null), new SimpleEntry<>("c", null))));
+                     toJson(TestObjects.makeMap(new SimpleEntry<>("a", null), new SimpleEntry<>("b", null), new SimpleEntry<>("c", null))));
         assertThrows(NullPointerException.class, () -> toJson(TestObjects.makeMap(new SimpleEntry<>(null, "a"), new SimpleEntry<>("b", "b"), new SimpleEntry<>("c", "c"))));
         assertThrows(NullPointerException.class, () -> toJson(TestObjects.makeMap(new SimpleEntry<>(null, null), new SimpleEntry<>("null", null))));
         assertThrows(NullPointerException.class, () -> toJson(TestObjects.makeMap(new SimpleEntry<>(null, null))));
         assertThrows(NullPointerException.class, () -> toJson(TestObjects.makeMap(new SimpleEntry<>(null, "a"))));
         assertEquals("{\"1\":1,\"b\":2}",
-                toJson(Map.of(1, 1, "b", 2)));
+                     toJson(Map.of(1, 1, "b", 2)));
         assertEquals("{\"EUR\":1.3,\"SVC\":13.67}",
-                toJson(Map.of(Currency.getInstance("EUR"), 1.3, Currency.getInstance("SVC"), 13.67)));
+                     toJson(Map.of(Currency.getInstance("EUR"), 1.3, Currency.getInstance("SVC"), 13.67)));
         assertEquals("{\"EUR\":21,\"SVC\":{}}",
-                toJson(Map.of(Currency.getInstance("EUR"), 21, Currency.getInstance("SVC"), new Object())));
+                     toJson(Map.of(Currency.getInstance("EUR"), 21, Currency.getInstance("SVC"), new Object())));
         assertEquals("{\"EUR\":{\"currencyCode\":\"EUR\",\"defaultFractionDigits\":2,\"displayName\":\"Euro\",\"numericCode\":978,\"numericCodeAsString\":\"978\",\"symbol\":\"\\u20AC\"},\"SVC\":{}}",
-                toJson(Map.of(Currency.getInstance("EUR"), Currency.getInstance("EUR"), Currency.getInstance("SVC"), new Object())));
+                     toJson(Map.of(Currency.getInstance("EUR"), Currency.getInstance("EUR"), Currency.getInstance("SVC"), new Object())));
     }
 
     @Test
@@ -170,7 +161,6 @@ public class JsonTests {
         assertThrows(IllegalArgumentException.class, () -> fromJson("e0"));
         assertThrows(IllegalArgumentException.class, () -> fromJson("e0e"));
         assertThrows(IllegalArgumentException.class, () -> fromJson("e 0"));
-        assertThrows(IllegalArgumentException.class, () -> fromJson("12345678901234567890"));
 
         assertNull(fromJson("null"));
         assertEquals(true, fromJson("true"));
@@ -228,45 +218,45 @@ public class JsonTests {
     @Test
     public void objectFromJson() {
         String json_1 = "{" +
-                        "\"anAbstract\":{" +
-                        "    \"$type\":\"org.modelingvalue.json.TestObjects$XXX# woef\"," +
-                        "    \"field\":5555," +
-                        "    \"shared_field\":4715," +
-                        "    \"subAbstract\":{" +
-                        "        \"$type\":\"org.modelingvalue.json.TestObjects$YYY# subsubsub\"," +
-                        "        \"field\":666," +
-                        "        \"shared_field\":4716" +
-                        "    }" +
-                        "}," +
-                        // TODO
-                        // "\"arrayOfAbstract\":[" +
-                        // "    {\"$type\":\"org.modelingvalue.json.TestObjects$XXX# burp\",\"field\":3333,\"shared_field\":4713}," +
-                        // "    {\"$type\":\"org.modelingvalue.json.TestObjects$YYY# why?\",\"field\":4444,\"shared_field\":4714}" +
-                        // "],"+
-                        "\"b-o\":true," +
-                        "\"b_y+t#e\":44," +
-                        "\"bool\":true," +
-                        "\"ch\":44," +
-                        "\"db\":3.1415," +
-                        "\"fl\":4711.2," +
-                        "\"in\":123456789," +
-                        "\"li1\":[1,2,3]," +
-                        "\"li2\":[{\"id\":1},{\"id\":2,\"sub\":{\"id\":21}},{\"id\":3,\"sub\":{\"id\":31}}]," +
-                        "\"li3\":[[{\"id\":1}],[{\"id\":2}]]," +
-                        "\"listOfAbstract\":[" +
-                        "    {\"$type\":\"org.modelingvalue.json.TestObjects$XXX# burp\",\"field\":1111,\"shared_field\":4711}," +
-                        "    {\"$type\":\"org.modelingvalue.json.TestObjects$YYY# why?\",\"field\":2222,\"shared_field\":4712}" +
-                        "]," +
-                        "\"lo\":1234567890123456789," +
-                        "\"ma\":{\"nope\":false,\"sure\":true,\"yes\":true}," +
-                        "\"num\":300," +
-                        "\"ob1\":{\"id\":33,\"sub\":{\"id\":88.0,\"sub\":{\"id\":99}}}," +
-                        "\"ob2\":{\"id\":\"44\"}," +
-                        "\"sh\":10000," +
-                        "\"ss\":[1,3,1,3]," +
-                        "\"st\":\"burp••\"," +
-                        "\"string\":\"burpie\"" +
-                        "}";
+                "\"anAbstract\":{" +
+                "    \"$type\":\"org.modelingvalue.json.TestObjects$XXX# woef\"," +
+                "    \"field\":5555," +
+                "    \"shared_field\":4715," +
+                "    \"subAbstract\":{" +
+                "        \"$type\":\"org.modelingvalue.json.TestObjects$YYY# subsubsub\"," +
+                "        \"field\":666," +
+                "        \"shared_field\":4716" +
+                "    }" +
+                "}," +
+                // TODO
+                // "\"arrayOfAbstract\":[" +
+                // "    {\"$type\":\"org.modelingvalue.json.TestObjects$XXX# burp\",\"field\":3333,\"shared_field\":4713}," +
+                // "    {\"$type\":\"org.modelingvalue.json.TestObjects$YYY# why?\",\"field\":4444,\"shared_field\":4714}" +
+                // "],"+
+                "\"b-o\":true," +
+                "\"b_y+t#e\":44," +
+                "\"bool\":true," +
+                "\"ch\":44," +
+                "\"db\":3.1415," +
+                "\"fl\":4711.2," +
+                "\"in\":123456789," +
+                "\"li1\":[1,2,3]," +
+                "\"li2\":[{\"id\":1},{\"id\":2,\"sub\":{\"id\":21}},{\"id\":3,\"sub\":{\"id\":31}}]," +
+                "\"li3\":[[{\"id\":1}],[{\"id\":2}]]," +
+                "\"listOfAbstract\":[" +
+                "    {\"$type\":\"org.modelingvalue.json.TestObjects$XXX# burp\",\"field\":1111,\"shared_field\":4711}," +
+                "    {\"$type\":\"org.modelingvalue.json.TestObjects$YYY# why?\",\"field\":2222,\"shared_field\":4712}" +
+                "]," +
+                "\"lo\":1234567890123456789," +
+                "\"ma\":{\"nope\":false,\"sure\":true,\"yes\":true}," +
+                "\"num\":300," +
+                "\"ob1\":{\"id\":33,\"sub\":{\"id\":88.0,\"sub\":{\"id\":99}}}," +
+                "\"ob2\":{\"id\":\"44\"}," +
+                "\"sh\":10000," +
+                "\"ss\":[1,3,1,3]," +
+                "\"st\":\"burp••\"," +
+                "\"string\":\"burpie\"" +
+                "}";
 
         AAA o = fromJson(AAA.class, json_1);
 
@@ -282,8 +272,8 @@ public class JsonTests {
         assertEquals(10000, o.sh);
         assertEquals(123456789, o.in);
         assertEquals(1234567890123456789L, o.lo);
-        assertEquals("" + 3.1415D, "" + o.db);
-        assertEquals("" + 4711.2, "" + o.fl);
+        assertEquals("" + 3.1415D, String.valueOf(o.db));
+        assertEquals("" + 4711.2, String.valueOf(o.fl));
         assertEquals("burp••", o.st);
         assertEquals((char) 44, o.ch);
         assertEquals(33, o.ob1.id);
@@ -320,5 +310,196 @@ public class JsonTests {
         String json_3 = toJson(fromJson(AAA.class, json_2));
 
         assertEquals(json_2, json_3);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void bigNumbers() {
+        boolean GENERATE = false;
+        //noinspection ConstantValue
+        if (GENERATE) {
+            StringBuilder b = new StringBuilder();
+
+            b.append("{\"int-pos\":[");
+            for (int i = 1; i < 30; i++) {
+                for (int j = 1; j <= i; j++) {
+                    b.append(j % 10);
+                }
+                b.append(",");
+            }
+            b.deleteCharAt(b.length() - 1);
+            b.append("],");
+            b.append("\"int-neg\":[");
+            for (int i = 1; i < 30; i++) {
+                b.append("-");
+                for (int j = 1; j <= i; j++) {
+                    b.append(j % 10);
+                }
+                b.append(",");
+            }
+            b.deleteCharAt(b.length() - 1);
+            b.append("],");
+            b.append("\"dec-pos\":[");
+            for (int i = 1; i < 30; i++) {
+                b.append("1e").append(i * 20).append(",");
+            }
+            b.deleteCharAt(b.length() - 1);
+            b.append("],");
+            b.append("\"dec-neg\":[");
+            for (int i = 1; i < 30; i++) {
+                b.append("-1e").append(i * 20).append(",");
+            }
+            b.deleteCharAt(b.length() - 1);
+            b.append("]}");
+            System.err.println("\"" + b.toString()
+                                       .replaceAll("\"", "\\\\\"")
+                                       .replaceAll("\\[", "[\"+\n\"")
+                                       .replaceAll("]", "\"+\n\"]")
+                                       .replaceAll(",", ",\"+\n\"") + "\"");
+        }
+
+
+        String json = "{\"int-pos\":[" +
+                "1," +
+                "12," +
+                "123," +
+                "1234," +
+                "12345," +
+                "123456," +
+                "1234567," +
+                "12345678," +
+                "123456789," +
+                "1234567890," +
+                "12345678901," +
+                "123456789012," +
+                "1234567890123," +
+                "12345678901234," +
+                "123456789012345," +
+                "1234567890123456," +
+                "12345678901234567," +
+                "123456789012345678," +
+                "1234567890123456789," +
+                "12345678901234567890," +
+                "123456789012345678901," +
+                "1234567890123456789012," +
+                "12345678901234567890123," +
+                "123456789012345678901234," +
+                "1234567890123456789012345," +
+                "12345678901234567890123456," +
+                "123456789012345678901234567," +
+                "1234567890123456789012345678," +
+                "12345678901234567890123456789" +
+                "]," +
+                "\"int-neg\":[" +
+                "-1," +
+                "-12," +
+                "-123," +
+                "-1234," +
+                "-12345," +
+                "-123456," +
+                "-1234567," +
+                "-12345678," +
+                "-123456789," +
+                "-1234567890," +
+                "-12345678901," +
+                "-123456789012," +
+                "-1234567890123," +
+                "-12345678901234," +
+                "-123456789012345," +
+                "-1234567890123456," +
+                "-12345678901234567," +
+                "-123456789012345678," +
+                "-1234567890123456789," +
+                "-12345678901234567890," +
+                "-123456789012345678901," +
+                "-1234567890123456789012," +
+                "-12345678901234567890123," +
+                "-123456789012345678901234," +
+                "-1234567890123456789012345," +
+                "-12345678901234567890123456," +
+                "-123456789012345678901234567," +
+                "-1234567890123456789012345678," +
+                "-12345678901234567890123456789" +
+                "]," +
+                "\"dec-pos\":[" +
+                "1e20," +
+                "1e40," +
+                "1e60," +
+                "1e80," +
+                "1e100," +
+                "1e120," +
+                "1e140," +
+                "1e160," +
+                "1e180," +
+                "1e200," +
+                "1e220," +
+                "1e240," +
+                "1e260," +
+                "1e280," +
+                "1e300," +
+                "1e320," +
+                "1e340," +
+                "1e360," +
+                "1e380," +
+                "1e400," +
+                "1e420," +
+                "1e440," +
+                "1e460," +
+                "1e480," +
+                "1e500," +
+                "1e520," +
+                "1e540," +
+                "1e560," +
+                "1e580" +
+                "]," +
+                "\"dec-neg\":[" +
+                "-1e20," +
+                "-1e40," +
+                "-1e60," +
+                "-1e80," +
+                "-1e100," +
+                "-1e120," +
+                "-1e140," +
+                "-1e160," +
+                "-1e180," +
+                "-1e200," +
+                "-1e220," +
+                "-1e240," +
+                "-1e260," +
+                "-1e280," +
+                "-1e300," +
+                "-1e320," +
+                "-1e340," +
+                "-1e360," +
+                "-1e380," +
+                "-1e400," +
+                "-1e420," +
+                "-1e440," +
+                "-1e460," +
+                "-1e480," +
+                "-1e500," +
+                "-1e520," +
+                "-1e540," +
+                "-1e560," +
+                "-1e580" +
+                "]}";
+        Map<Object, Object> m      = (Map<Object, Object>) fromJson(json);
+        List<Object>        intPos = (List<Object>) m.get("int-pos");
+        List<Object>        intNeg = (List<Object>) m.get("int-neg");
+        List<Object>        decPos = (List<Object>) m.get("dec-pos");
+        List<Object>        decNeg = (List<Object>) m.get("dec-neg");
+
+        for (int i = 0; i < intPos.size(); i++) {
+            assertEquals(i < 19 ? Long.class : BigInteger.class, intPos.get(i).getClass(), "at index " + i);
+        }
+        for (int i = 0; i < intNeg.size(); i++) {
+            assertEquals(i < 19 ? Long.class : BigInteger.class, intNeg.get(i).getClass(), "at index " + i);
+        }
+        for (int i = 0; i < decPos.size(); i++) {
+            assertEquals(i < 15 ? Double.class : BigDecimal.class, decPos.get(i).getClass(), "at index " + i);
+        }
+        for (int i = 0; i < decNeg.size(); i++) {
+            assertEquals(i < 15 ? Double.class : BigDecimal.class, decNeg.get(i).getClass(), "at index " + i);
+        }
     }
 }

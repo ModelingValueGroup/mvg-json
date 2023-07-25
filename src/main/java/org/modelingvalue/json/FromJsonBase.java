@@ -15,6 +15,8 @@
 
 package org.modelingvalue.json;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Stack;
 import java.util.function.Supplier;
@@ -139,31 +141,31 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
             throw error("premature end");
         }
         switch (current) {
-        case '{':
-            return parseMap();
-        case '[':
-            return parseArray();
-        case '"':
-            return parseString();
-        case '+':
-        case '-':
-        case '0':
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-        case '6':
-        case '7':
-        case '8':
-        case '9':
-            return parseNumber();
-        case 't'/*true*/:
-            return parseTrue();
-        case 'f'/*false*/:
-            return parseFalse();
-        case 'n'/*null*/:
-            return parseNull();
+            case '{':
+                return parseMap();
+            case '[':
+                return parseArray();
+            case '"':
+                return parseString();
+            case '+':
+            case '-':
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+                return parseNumber();
+            case 't'/*true*/:
+                return parseTrue();
+            case 'f'/*false*/:
+                return parseFalse();
+            case 'n'/*null*/:
+                return parseNull();
         }
         throw error("unexpected character '" + current + "'");
     }
@@ -190,14 +192,14 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
                 path.pop();
                 skipWS();
                 switch (current) {
-                case ',':
-                    next();
-                    skipWS();
-                    break;
-                case '}':
-                    break loop;
-                default:
-                    throw error("unexpected charecter '" + current + "'");
+                    case ',':
+                        next();
+                        skipWS();
+                        break;
+                    case '}':
+                        break loop;
+                    default:
+                        throw error("unexpected charecter '" + current + "'");
                 }
                 index++;
             }
@@ -223,14 +225,14 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
                 path.pop();
                 skipWS();
                 switch (current) {
-                case ',':
-                    next();
-                    skipWS();
-                    break;
-                case ']':
-                    break A;
-                default:
-                    throw error("unexpected charecter '" + current + "'");
+                    case ',':
+                        next();
+                        skipWS();
+                        break;
+                    case ']':
+                        break A;
+                    default:
+                        throw error("unexpected charecter '" + current + "'");
                 }
                 index++;
             }
@@ -250,37 +252,37 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
             } else if (current == '\\') {
                 next();
                 switch (current) {
-                case '"':
-                case '\\':
-                case '/':
-                    b.append(current);
-                    break;
-                case 'b':
-                    b.append('\b');
-                    break;
-                case 'f':
-                    b.append('\f');
-                    break;
-                case 'n':
-                    b.append('\n');
-                    break;
-                case 'r':
-                    b.append('\r');
-                    break;
-                case 't':
-                    b.append('\t');
-                    break;
-                case 'u':
-                    next();
-                    if (input.length() <= i + 4) {
-                        throw error("end of input in unicode sequence");
-                    }
-                    int hex = Integer.parseInt(input, i, i + 4, 16);
-                    b.append((char) hex);
-                    next(3);
-                    break;
-                default:
-                    throw error("unexpected charecter '" + current + "'");
+                    case '"':
+                    case '\\':
+                    case '/':
+                        b.append(current);
+                        break;
+                    case 'b':
+                        b.append('\b');
+                        break;
+                    case 'f':
+                        b.append('\f');
+                        break;
+                    case 'n':
+                        b.append('\n');
+                        break;
+                    case 'r':
+                        b.append('\r');
+                        break;
+                    case 't':
+                        b.append('\t');
+                        break;
+                    case 'u':
+                        next();
+                        if (input.length() <= i + 4) {
+                            throw error("end of input in unicode sequence");
+                        }
+                        int hex = Integer.parseInt(input, i, i + 4, 16);
+                        b.append((char) hex);
+                        next(3);
+                        break;
+                    default:
+                        throw error("unexpected charecter '" + current + "'");
                 }
                 next();
             } else if (current == '"') {
@@ -299,28 +301,28 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         A:
         while (true) {
             switch (current) {
-            case '0':
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
-            case '6':
-            case '7':
-            case '8':
-            case '9':
-            case '+':
-            case '-':
-                next();
-                break;
-            case '.':
-            case 'e':
-            case 'E':
-                isDouble = true;
-                next();
-                break;
-            default:
-                break A;
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+                case '+':
+                case '-':
+                    next();
+                    break;
+                case '.':
+                case 'e':
+                case 'E':
+                    isDouble = true;
+                    next();
+                    break;
+                default:
+                    break A;
             }
         }
         Character c0 = input.charAt(start);
@@ -330,18 +332,26 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
             c1 = i <= start + 2 ? null : input.charAt(start + 2);
         }
         if (c0 == null
-            || !('0' <= c0 && c0 <= '9')
-            || (c0 == '0' && c1 != null && c1 != '.') && c1 != 'e' && c1 != 'E') {
+                || !('0' <= c0 && c0 <= '9')
+                || (c0 == '0' && c1 != null && c1 != '.') && c1 != 'e' && c1 != 'E') {
             i = start;
             throw error("unexpected character in number literal '" + c0 + "'");
         }
+        String theNumber = input.substring(start, i);
+        Object result;
         if (isDouble) {
-            //noinspection RedundantCast ## IntelliJ bug flags this as redunant: https://youtrack.jetbrains.com/issue/IDEA-251055
-            return (Object) Double.parseDouble(input.substring(start, i));
+            result = Double.parseDouble(theNumber);
+            if (result.equals(Double.POSITIVE_INFINITY) || result.equals(Double.NEGATIVE_INFINITY)) {
+                result = new BigDecimal(theNumber);
+            }
         } else {
-            //noinspection RedundantCast ## IntelliJ bug flags this as redunant: https://youtrack.jetbrains.com/issue/IDEA-251055
-            return (Object) Long.parseLong(input, start, i, 10);
+            try {
+                result = Long.parseLong(theNumber);
+            } catch (NumberFormatException e) {
+                result = new BigInteger(theNumber);
+            }
         }
+        return result;
     }
 
     @SuppressWarnings("SameReturnValue")
@@ -375,17 +385,17 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         int start = i;
         while (true) {
             switch (current) {
-            case ' ':
-            case '\n':
-            case '\r':
-            case '\t':
-                next();
-                break;
-            default:
-                if (start != i) {
-                    detectedWhitespace(start, () -> input.substring(i, i - start));
-                }
-                return;
+                case ' ':
+                case '\n':
+                case '\r':
+                case '\t':
+                    next();
+                    break;
+                default:
+                    if (start != i) {
+                        detectedWhitespace(start, () -> input.substring(i, i - start));
+                    }
+                    return;
             }
         }
     }

@@ -17,12 +17,10 @@ package org.modelingvalue.json;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Objects;
 
 @SuppressWarnings("unused")
 public class ToJson {
@@ -151,6 +149,10 @@ public class ToJson {
             jsonFromBooleanArray((boolean[]) o);
         } else if (o instanceof Object[]) {
             jsonFromObjectArray((Object[]) o);
+        } else if (o instanceof BigInteger) {
+            b.append(o);
+        } else if (o instanceof BigDecimal) {
+            b.append(o);
         } else {
             jsonFromIntrospection(o);
         }
