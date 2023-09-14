@@ -161,17 +161,17 @@ public class ToJson {
     private Object replaceSFO(Object o) {
         Class<?> clazz;
         if (!config.ignoreSFOs//
-            && o != null//
-            && !(clazz = o.getClass()).isPrimitive()//
-            && clazz.getSuperclass() == Object.class//
-            && U.unbox(clazz) == clazz//
+                && o != null//
+                && !(clazz = o.getClass()).isPrimitive()//
+                && clazz.getSuperclass() == Object.class//
+                && U.unbox(clazz) == clazz//
         ) {
             Field[]          fields = clazz.getDeclaredFields();
             Constructor<?>[] constructors;
             if (fields.length == 1//
-                && (constructors = clazz.getDeclaredConstructors()).length == 1//
-                && constructors[0].getParameterCount() == 1//
-                && constructors[0].getParameterTypes()[0] == fields[0].getType()//
+                    && (constructors = clazz.getDeclaredConstructors()).length == 1//
+                    && constructors[0].getParameterCount() == 1//
+                    && constructors[0].getParameterTypes()[0] == fields[0].getType()//
             ) {
                 try {
                     fields[0].setAccessible(true);
@@ -199,12 +199,15 @@ public class ToJson {
         int savedIndex = index;
         index = 0;
         while (it.hasNext()) {
-            Entry<Object, Object> e = it.next();
-            b.append(sep);
-            sep = ",";
-            jsonFromString(stringFromKey(e.getKey()));
-            b.append(":");
-            jsonFromAny(e.getValue());
+            Entry<Object, Object> e     = it.next();
+            Object                value = e.getValue();
+            if (value != null || !config.ignoreNullValues) {
+                b.append(sep);
+                sep = ",";
+                jsonFromString(stringFromKey(e.getKey()));
+                b.append(":");
+                jsonFromAny(value);
+            }
             index++;
         }
         index = savedIndex;
@@ -224,9 +227,12 @@ public class ToJson {
         int savedIndex = index;
         index = 0;
         while (it.hasNext()) {
-            b.append(sep);
-            sep = ",";
-            jsonFromAny(it.next());
+            Object value = it.next();
+            if (value != null || !config.ignoreNullValues) {
+                b.append(sep);
+                sep = ",";
+                jsonFromAny(value);
+            }
             index++;
         }
         index = savedIndex;
@@ -426,41 +432,41 @@ public class ToJson {
     private void appendStringCharacter(char ch) {
         //noinspection CommentedOutCode
         switch (ch) {
-        case '"':
-            b.append("\\\"");
-            break;
-        // JSON allows escaping '/' but it does not require it to be escaped:
-        //        case '/':
-        //            b.append("\\/");
-        //            break;
-        case '\\':
-            b.append("\\\\");
-            break;
-        case '\b':
-            b.append("\\b");
-            break;
-        case '\f':
-            b.append("\\f");
-            break;
-        case '\n':
-            b.append("\\n");
-            break;
-        case '\r':
-            b.append("\\r");
-            break;
-        case '\t':
-            b.append("\\t");
-            break;
-        default:
-            // see: https://www.unicode.org
-            if (ch <= '\u001F' || ('\u007F' <= ch && ch <= '\u009F') || ('\u2000' <= ch && ch <= '\u20FF')) {
-                String ss = Integer.toHexString(ch);
-                b.append("\\u");
-                b.append("0".repeat(4 - ss.length()));
-                b.append(ss.toUpperCase());
-            } else {
-                b.append(ch);
-            }
+            case '"':
+                b.append("\\\"");
+                break;
+            // JSON allows escaping '/' but it does not require it to be escaped:
+            //        case '/':
+            //            b.append("\\/");
+            //            break;
+            case '\\':
+                b.append("\\\\");
+                break;
+            case '\b':
+                b.append("\\b");
+                break;
+            case '\f':
+                b.append("\\f");
+                break;
+            case '\n':
+                b.append("\\n");
+                break;
+            case '\r':
+                b.append("\\r");
+                break;
+            case '\t':
+                b.append("\\t");
+                break;
+            default:
+                // see: https://www.unicode.org
+                if (ch <= '\u001F' || ('\u007F' <= ch && ch <= '\u009F') || ('\u2000' <= ch && ch <= '\u20FF')) {
+                    String ss = Integer.toHexString(ch);
+                    b.append("\\u");
+                    b.append("0".repeat(4 - ss.length()));
+                    b.append(ss.toUpperCase());
+                } else {
+                    b.append(ch);
+                }
         }
     }
 }
