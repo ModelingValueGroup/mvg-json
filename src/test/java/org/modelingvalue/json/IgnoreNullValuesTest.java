@@ -27,15 +27,15 @@ public class IgnoreNullValuesTest {
                                        {
                                          "id": 1,
                                          "list": [
-                                           {"name": "A"},
-                                           {"name": null},
-                                           {"name": "C"},
+                                           "A",
+                                           null,
+                                           "C",
                                            null
                                          ],
                                          "map": {
-                                           "a": {"name": "A"},
-                                           "b": {"name": null},
-                                           "c": {"name": "C"}
+                                           "a": "A",
+                                           "b": null,
+                                           "c": "C"
                                          },
                                          "name": "name",
                                          "nullInteger": null,
@@ -47,14 +47,14 @@ public class IgnoreNullValuesTest {
                                        {
                                          "id": 1,
                                          "list": [
-                                           {"name": "A"},
-                                           {},
-                                           {"name": "C"}
+                                           "A",
+                                           null,
+                                           "C"
                                          ],
                                          "map": {
-                                           "a": {"name": "A"},
-                                           "b": {},
-                                           "c": {"name": "C"}
+                                           "a": "A",
+                                           "b": null,
+                                           "c": "C"
                                          },
                                          "name": "name"
                                        }""";
