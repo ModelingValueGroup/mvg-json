@@ -110,7 +110,10 @@ class ClassInfo {
         this.clazz  = clazz;
         this.config = config;
 
-        U.findElements(clazz, config, m -> members.add(new MethodMemberInfo(m)), f -> members.add(new FieldMemberInfo(f)), RW.READ);
+        U.forAllMethodsAndFields(clazz, config, //
+                                 m -> members.add(new MethodMemberInfo(m)), //
+                                 f -> members.add(new FieldMemberInfo(f)), //
+                                 RW.READ);
         members.sort(Comparator.comparing(m -> m.name));
         idField = members.stream().filter(MemberInfo::isId).findFirst().orElse(null);
         if (idField != null) {
