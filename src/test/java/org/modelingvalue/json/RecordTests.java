@@ -17,16 +17,28 @@ package org.modelingvalue.json;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class RecordTests {
+    public static final String SIMPLE_EXP          = """
+                                                     {"b":true,"i":4711,"name":"lalala","version":"1.0"}
+                                                     """.replace("\n", "");
+    public static final String SIMPLE_WITH_EXTRA   = """
+                                                     {"b":true,"i":4711,"name":"lalala","extra":1234,"version":"1.0"}
+                                                     """.replace("\n", "");
+    public static final String SIMPLE_WITH_MISSING = """
+                                                     {"b":true,"i":4711,"name":"lalala"}
+                                                     """.replace("\n", "");
+    public static final String COMPLEX_EXP         = """
+                                                     {"fff":3.1415,"r":{"b":true,"i":4711,"name":"lalala","version":"1.0"}}
+                                                     """.replace("\n", "");
+
     @Test
     public void simple() {
         SimpleRecord r1 = new SimpleRecord("lalala", "1.0", 4711, true);
 
         String json = Json.toJson(r1);
-        assertEquals("""
-                     {"b":true,"i":4711,"name":"lalala","version":"1.0"}""", json);
+        assertEquals(SIMPLE_EXP, json);
 
         SimpleRecord r2 = Json.fromJson(SimpleRecord.class, json);
 
@@ -41,8 +53,7 @@ public class RecordTests {
         ComplexRecord r1 = new ComplexRecord(3.1415F, new SimpleRecord("lalala", "1.0", 4711, true));
 
         String json = Json.toJson(r1);
-        assertEquals("""
-                     {"fff":3.1415,"r":{"b":true,"i":4711,"name":"lalala","version":"1.0"}}""", json);
+        assertEquals(COMPLEX_EXP, json);
 
         ComplexRecord r2 = Json.fromJson(ComplexRecord.class, json);
 
@@ -50,6 +61,33 @@ public class RecordTests {
         assertEquals(r1.r().version(), r2.r().version());
         assertEquals(r1.r().i(), r2.r().i());
         assertEquals(r1.r().b(), r2.r().b());
+    }
+
+    @Test
+    public void throwOnExtra() {
+        assertThrows(IllegalArgumentException.class, () -> Json.fromJson(SimpleRecord.class, SIMPLE_WITH_EXTRA));
+    }
+
+    @Test
+    public void goOnExtra() {
+        Config config = new Config();
+        config.ignoreUnkownFieldsInRecords = true;
+        SimpleRecord r1 = FromJsonGeneric.fromJson(SimpleRecord.class, SIMPLE_WITH_EXTRA, config);
+
+        assertEquals("lalala", r1.name());
+        assertEquals("1.0", r1.version());
+        assertEquals(4711, r1.i());
+        assertTrue(r1.b());
+    }
+
+    @Test
+    public void nullOnMissing() {
+        SimpleRecord r2 = Json.fromJson(SimpleRecord.class, SIMPLE_WITH_MISSING);
+
+        assertEquals("lalala", r2.name());
+        assertEquals(null, r2.version());
+        assertEquals(4711, r2.i());
+        assertTrue(r2.b());
     }
 
     record SimpleRecord(String name, String version, int i, boolean b) {
