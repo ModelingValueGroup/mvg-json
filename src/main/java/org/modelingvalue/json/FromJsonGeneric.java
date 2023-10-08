@@ -105,7 +105,15 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
             case MAY_NOT_BE_MORE:
                 throw error("id references must be the only field present when referencing a previous object: found " + key + ": " + value);
         }
-        return typeInfo.getFieldSetter(key).set(m, key, value);
+        FieldSetter fieldSetter = typeInfo.getFieldSetter(key);
+        if (fieldSetter == null) {
+            if (!config.ignoreUnkownFieldsInRecords) {
+                throw error("unknown field in record: " + key);
+            }
+            return m;
+        } else {
+            return fieldSetter.set(m, key, value);
+        }
     }
 
     @Override
