@@ -15,51 +15,51 @@
 
 package org.modelingvalue.json;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class U {
     public static final  String            CLASS_NAME_FIELD_NAME           = "~className";
-    private static final Predicate<Field>  FIELD_INTROSPECTION_FILTER      = f -> !f.isSynthetic()//
-                                                                                  && !f.isEnumConstant()//
-                                                                                  && !Modifier.isStatic(f.getModifiers())//
-                                                                                  && !Modifier.isVolatile(f.getModifiers())//
-                                                                                  && !Modifier.isNative(f.getModifiers())//
-                                                                                  && !Modifier.isTransient(f.getModifiers())//
-                                                                                  && f.getAnnotation(JsonIgnore.class) == null
-                                                                                  && (Modifier.isPublic(f.getModifiers()) || !f.getDeclaringClass().getPackage().getName().startsWith("java."));
-    private static final Predicate<Method> GET_METHOD_INTROSPECTION_FILTER = m -> !m.isSynthetic()//
-                                                                                  && m.getParameterCount() == 0//
-                                                                                  && m.getReturnType() != Void.class//
-                                                                                  && !m.isDefault()//
-                                                                                  && !Modifier.isStatic(m.getModifiers())//
-                                                                                  && !Modifier.isVolatile(m.getModifiers())//
-                                                                                  && !Modifier.isNative(m.getModifiers())//
-                                                                                  && !Modifier.isTransient(m.getModifiers())//
-                                                                                  && m.getAnnotation(JsonIgnore.class) == null
-                                                                                  && (Modifier.isPublic(m.getModifiers()) || !m.getDeclaringClass().getPackage().getName().startsWith("java."))//
-                                                                                  && m.getName().matches("^(get|is)[A-Z].*");
+    private static final Predicate<Field>  GET_FIELD_INTROSPECTION_FILTER  = //
+            f -> !f.isSynthetic()//
+                    && !f.isEnumConstant()//
+                    && !Modifier.isStatic(f.getModifiers())//
+                    && !Modifier.isVolatile(f.getModifiers())//
+                    && !Modifier.isNative(f.getModifiers())//
+                    && !Modifier.isTransient(f.getModifiers())//
+                    && f.getAnnotation(JsonIgnore.class) == null
+                    && (Modifier.isPublic(f.getModifiers()) || !f.getDeclaringClass().getPackage().getName().startsWith("java."));
+    private static final Predicate<Field>  SET_FIELD_INTROSPECTION_FILTER  =
+            f -> GET_FIELD_INTROSPECTION_FILTER.test(f) && !Modifier.isFinal(f.getModifiers());
+    private static final Predicate<Method> GET_METHOD_INTROSPECTION_FILTER = //
+            m -> !m.isSynthetic()//
+                    && m.getParameterCount() == 0//
+                    && m.getReturnType() != Void.class//
+                    && !m.isDefault()//
+                    && !Modifier.isStatic(m.getModifiers())//
+                    && !Modifier.isVolatile(m.getModifiers())//
+                    && !Modifier.isNative(m.getModifiers())//
+                    && !Modifier.isTransient(m.getModifiers())//
+                    && m.getAnnotation(JsonIgnore.class) == null
+                    && (Modifier.isPublic(m.getModifiers()) || !m.getDeclaringClass().getPackage().getName().startsWith("java."))//
+                    && m.getName().matches("^(get|is)[A-Z].*");
 
-    private static final Predicate<Method> SET_METHOD_INTROSPECTION_FILTER = m -> !m.isSynthetic()//
-                                                                                  && m.getParameterCount() == 1//
-                                                                                  && !m.isDefault()//
-                                                                                  && !Modifier.isStatic(m.getModifiers())//
-                                                                                  && !Modifier.isVolatile(m.getModifiers())//
-                                                                                  && !Modifier.isNative(m.getModifiers())//
-                                                                                  && !Modifier.isTransient(m.getModifiers())//
-                                                                                  && m.getAnnotation(JsonIgnore.class) == null
-                                                                                  && (Modifier.isPublic(m.getModifiers()) || !m.getDeclaringClass().getPackage().getName().startsWith("java."))//
-                                                                                  && m.getName().matches("^set[A-Z].*");
+    private static final Predicate<Method> SET_METHOD_INTROSPECTION_FILTER = //
+            m -> !m.isSynthetic()//
+                    && m.getParameterCount() == 1//
+                    && !m.isDefault()//
+                    && !Modifier.isStatic(m.getModifiers())//
+                    && !Modifier.isVolatile(m.getModifiers())//
+                    && !Modifier.isNative(m.getModifiers())//
+                    && !Modifier.isTransient(m.getModifiers())//
+                    && m.getAnnotation(JsonIgnore.class) == null
+                    && (Modifier.isPublic(m.getModifiers()) || !m.getDeclaringClass().getPackage().getName().startsWith("java."))//
+                    && m.getName().matches("^set[A-Z].*");
 
     public enum RW {
         READ, WRITE
@@ -75,22 +75,21 @@ public class U {
     }
 
     public static Class<?> getRawClassOf(Type type) {
-        if (type instanceof ParameterizedType) {
-            Type rawType = ((ParameterizedType) type).getRawType();
+        if (type instanceof ParameterizedType parType) {
+            Type rawType = parType.getRawType();
             if (rawType instanceof Class) {
                 return (Class<?>) rawType;
             }
-        } else if (type instanceof Class) {
-            return (Class<?>) type;
+        } else if (type instanceof Class<?> classType) {
+            return classType;
         }
         throw new IllegalArgumentException("no raw class can be determined for " + type);
     }
 
     public static Type getElementType(Type type) {
-        if (type instanceof ParameterizedType) {
-            ParameterizedType ptype = (ParameterizedType) type;
-            List<Type>        args  = Arrays.stream(ptype.getActualTypeArguments()).collect(Collectors.toList());
-            if (args.size() == 0) {
+        if (type instanceof ParameterizedType ptype) {
+            List<Type> args = Arrays.stream(ptype.getActualTypeArguments()).toList();
+            if (args.isEmpty()) {
                 return null;
             }
             if (args.size() == 1) {
@@ -163,19 +162,23 @@ public class U {
         return t;
     }
 
-    static void findElements(Class<?> clazz, Config config, Consumer<Method> methodConsumer, Consumer<Field> fieldConsumer, RW rw) {
-        Set<String> names = new HashSet<>();
+    static void forAllMethodsAndFields(Class<?> clazz, Config config, Consumer<Method> methodConsumer, Consumer<Field> fieldConsumer, RW rw) {
+        Set<String>       names        = new HashSet<>();
+        Predicate<Method> methodFilter = rw == RW.READ ? GET_METHOD_INTROSPECTION_FILTER : SET_METHOD_INTROSPECTION_FILTER;
+        Predicate<Field>  fieldFilter  = rw == RW.READ ? GET_FIELD_INTROSPECTION_FILTER : SET_FIELD_INTROSPECTION_FILTER;
+
         for (Class<?> c = clazz; c != Object.class; c = c.getSuperclass()) {
             Arrays.stream(c.getDeclaredMethods())
-                    .filter(rw == RW.READ ? GET_METHOD_INTROSPECTION_FILTER : SET_METHOD_INTROSPECTION_FILTER)
-                    .peek(m -> m.setAccessible(true))
-                    .filter(m -> names.add(methodToElementName(m)))
-                    .forEach(methodConsumer);
+                  .filter(methodFilter)
+                  .peek(m -> m.setAccessible(true))
+                  .filter(m -> names.add(methodToElementName(m)))
+                  .forEach(methodConsumer);
+
             Arrays.stream(c.getDeclaredFields())
-                    .filter(FIELD_INTROSPECTION_FILTER)
-                    .peek(f -> f.setAccessible(true))
-                    .filter(f -> names.add(fieldToElementName(f, config)))
-                    .forEach(fieldConsumer);
+                  .filter(fieldFilter)
+                  .peek(f -> f.setAccessible(true))
+                  .filter(f -> names.add(fieldToElementName(f, config)))
+                  .forEach(fieldConsumer);
         }
     }
 }

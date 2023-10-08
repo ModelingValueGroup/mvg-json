@@ -21,12 +21,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.AbstractMap.SimpleEntry;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -115,7 +110,10 @@ class ClassInfo {
         this.clazz  = clazz;
         this.config = config;
 
-        U.findElements(clazz, config, m -> members.add(new MethodMemberInfo(m)), f -> members.add(new FieldMemberInfo(f)), RW.READ);
+        U.forAllMethodsAndFields(clazz, config, //
+                                 m -> members.add(new MethodMemberInfo(m)), //
+                                 f -> members.add(new FieldMemberInfo(f)), //
+                                 RW.READ);
         members.sort(Comparator.comparing(m -> m.name));
         idField = members.stream().filter(MemberInfo::isId).findFirst().orElse(null);
         if (idField != null) {
@@ -139,11 +137,15 @@ class ClassInfo {
     }
 
     public Iterator<Entry<Object, Object>> getIntrospectionIterator(Object o) {
+        Stream<Entry<Object, Object>> entryStream;
         if (seenBefore(o)) {
-            return Stream.of(idField.getEntry(o)).iterator();
+            entryStream = Stream.of(idField.getEntry(o));
         } else {
-            Stream<SimpleEntry<Object, Object>> classStream = config.includeClassNameInIntrospection ? Stream.of(new SimpleEntry<>(U.CLASS_NAME_FIELD_NAME, clazz.getName())) : Stream.empty();
-            return Stream.concat(classStream, members.stream().map(m -> m.getEntry(o))).iterator();
+            entryStream = members.stream().map(m -> m.getEntry(o));
+            if (config.includeClassNameInIntrospection) {
+                entryStream = Stream.concat(Stream.of(new SimpleEntry<>(U.CLASS_NAME_FIELD_NAME, clazz.getName())), entryStream);
+            }
         }
+        return entryStream.iterator();
     }
 }

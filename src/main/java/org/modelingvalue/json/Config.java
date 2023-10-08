@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 public class Config {
     public       boolean                       ignoreSFOs; // SFO = Single Field Object
     public       boolean                       includeClassNameInIntrospection;
+    public       boolean                       ignoreNullValues;
     public final Map<Field, List<Annotation>>  extraFieldAnnotations  = new HashMap<>();
     public final Map<Method, List<Annotation>> extraMethodAnnotations = new HashMap<>();
 
