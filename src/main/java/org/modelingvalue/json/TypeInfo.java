@@ -15,12 +15,17 @@
 
 package org.modelingvalue.json;
 
-import org.modelingvalue.json.U.RW;
-
-import java.lang.reflect.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.RecordComponent;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import org.modelingvalue.json.U.RW;
 
 interface TypeInfo {
     static TypeInfo makeTypeInfo(Type type, Config config, Consumer<TypeInfo> topStackReplacer) {
@@ -38,13 +43,13 @@ interface TypeInfo {
             throw new RuntimeException("Arrays not yet supported: " + type);
         } else if (Object.class.isAssignableFrom(rawClass)) {
             Method classSelector = Arrays.stream(rawClass.getMethods())//
-                                         .filter(m -> config.getAnnotation(m, JsonClassSelector.class) != null)//
-                                         .filter(m -> Modifier.isStatic(m.getModifiers()))//
-                                         .filter(m -> Class.class.isAssignableFrom(m.getReturnType()))//
-                                         .filter(m -> m.getParameterCount() == 2)//
-                                         .filter(m -> m.getParameterTypes()[0] == String.class)//
-                                         .findFirst()//
-                                         .orElse(null);
+                    .filter(m -> config.getAnnotation(m, JsonClassSelector.class) != null)//
+                    .filter(m -> Modifier.isStatic(m.getModifiers()))//
+                    .filter(m -> Class.class.isAssignableFrom(m.getReturnType()))//
+                    .filter(m -> m.getParameterCount() == 2)//
+                    .filter(m -> m.getParameterTypes()[0] == String.class)//
+                    .findFirst()//
+                    .orElse(null);
             if (classSelector != null) {
                 return new SelectorTypeInfo(rawClass, classSelector, config, topStackReplacer);
             } else {
@@ -86,8 +91,7 @@ interface TypeInfo {
             return () -> {
                 try {
                     return clazz.getConstructor().newInstance();
-                } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
-                         NoSuchMethodException e) {
+                } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                     throw new RuntimeException("problem instanciating " + clazz.getSimpleName(), e);
                 }
             };
@@ -101,14 +105,14 @@ interface TypeInfo {
         final FieldSetter fieldSetter;
         final Type        fieldType;
 
-        final Config config;
+        final Config      config;
 
         BaseTypeInfo(Class<?> clazz, Maker maker, FieldSetter fieldSetter, Type fieldType, Config config) {
-            this.clazz       = clazz;
-            this.maker       = maker;
+            this.clazz = clazz;
+            this.maker = maker;
             this.fieldSetter = fieldSetter;
-            this.fieldType   = fieldType;
-            this.config      = config;
+            this.fieldType = fieldType;
+            this.config = config;
         }
 
         @Override
@@ -120,18 +124,22 @@ interface TypeInfo {
             return clazz;
         }
 
+        @Override
         public Maker getMaker() {
             return maker;
         }
 
+        @Override
         public FieldSetter getFieldSetter(Object key) {
             return fieldSetter;
         }
 
+        @Override
         public Type getFieldType(Object key) {
             return fieldType;
         }
 
+        @Override
         public boolean isIdField(String name) {
             return false;
         }
@@ -163,9 +171,9 @@ interface TypeInfo {
         public RecordTypeInfo(Class<?> clazz, Config config) {
             super(clazz, HashMap::new, CoercingMemberSetter.forMap(Object.class), null, config);
             RecordComponent[] recordComponents = clazz.getRecordComponents();
-            types           = Arrays.stream(recordComponents).map(RecordComponent::getType).toArray(n -> new Class<?>[n]);
-            fieldNames      = Arrays.stream(recordComponents).map(RecordComponent::getName).toList();
-            fieldTypesMap   = Arrays.stream(recordComponents).collect(Collectors.toMap(RecordComponent::getName, RecordComponent::getType));
+            types = Arrays.stream(recordComponents).map(RecordComponent::getType).toArray(n -> new Class<?>[n]);
+            fieldNames = Arrays.stream(recordComponents).map(RecordComponent::getName).toList();
+            fieldTypesMap = Arrays.stream(recordComponents).collect(Collectors.toMap(RecordComponent::getName, RecordComponent::getType));
             fieldSettersMap = Arrays.stream(recordComponents).collect(Collectors.toMap(RecordComponent::getName, rc -> CoercingMemberSetter.forMap(rc.getType())));
         }
 
@@ -193,8 +201,7 @@ interface TypeInfo {
             try {
                 Object[] values = fieldNames.stream().map(name -> map.get(name)).toArray();
                 return clazz.getDeclaredConstructor(types).newInstance(values);
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
-                     NoSuchMethodException e) {
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                 String argTypes = Arrays.stream(types).map(Class::getSimpleName).collect(Collectors.joining(","));
                 throw new RuntimeException("could not make record: " + clazz.getSimpleName() + "(" + argTypes + ")", e);
             }
@@ -207,7 +214,7 @@ interface TypeInfo {
 
         public SelectorTypeInfo(Class<?> clazz, Method classSelector, Config config, Consumer<TypeInfo> topStackReplacer) {
             super(clazz, () -> null, null, null, config);
-            this.classSelector    = classSelector;
+            this.classSelector = classSelector;
             this.topStackReplacer = topStackReplacer;
         }
 
@@ -225,8 +232,7 @@ interface TypeInfo {
                     topStackReplacer.accept(newTypeInfo);
                     Object newObject = clazzClass.getDeclaredConstructor().newInstance();
                     return newTypeInfo.getMemberInfo(key).fieldSetter.set(newObject, key, v);
-                } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException |
-                         InstantiationException e) {
+                } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException | InstantiationException e) {
                     throw new RuntimeException("problem in class-selector " + classSelector, e);
                 }
             };
@@ -241,10 +247,10 @@ interface TypeInfo {
             final String      name;
 
             public MemberInfo(Type type, FieldSetter fieldSetter, boolean isId, String name) {
-                this.type        = type;
+                this.type = type;
                 this.fieldSetter = fieldSetter;
-                this.isId        = isId;
-                this.name        = name;
+                this.isId = isId;
+                this.name = name;
             }
         }
 
@@ -271,10 +277,10 @@ interface TypeInfo {
 
         public ObjectTypeInfo(Class<?> clazz, Config config) {
             super(clazz, Maker.of(clazz), null, null, config);
-            U.forAllMethodsAndFields(clazz, config,//
-                                     m -> memberMap.put(U.methodToElementName(m), new MethodMemberInfo(m)),//
-                                     f -> memberMap.put(U.fieldToElementName(f, config), new FieldMemberInfo(f)),//
-                                     RW.WRITE);
+            U.forAllMethodsAndFields(clazz, config, //
+                    m -> memberMap.put(U.methodToElementName(m), new MethodMemberInfo(m)), //
+                    f -> memberMap.put(U.fieldToElementName(f, config), new FieldMemberInfo(f)), //
+                    RW.WRITE);
             idFieldName = memberMap.values().stream().filter(mi -> mi.isId).findFirst().map(mi -> mi.name).orElse(null);
         }
 
@@ -303,6 +309,7 @@ interface TypeInfo {
             return memberMap.get((String) key);
         }
 
+        @Override
         public boolean isIdField(String name) {
             return Objects.equals(name, idFieldName);
         }

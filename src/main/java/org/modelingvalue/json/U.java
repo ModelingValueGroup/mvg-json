@@ -35,7 +35,7 @@ public class U {
                     && f.getAnnotation(JsonIgnore.class) == null
                     && (Modifier.isPublic(f.getModifiers()) || !f.getDeclaringClass().getPackage().getName().startsWith("java."));
     private static final Predicate<Field>  SET_FIELD_INTROSPECTION_FILTER  =
-            f -> GET_FIELD_INTROSPECTION_FILTER.test(f) && !Modifier.isFinal(f.getModifiers());
+            GET_FIELD_INTROSPECTION_FILTER/* DO NOT CHECK FINAL! final fields can be set with introspection.... weird but true  (.and(f -> !Modifier.isFinal(f.getModifiers())))*/;
     private static final Predicate<Method> GET_METHOD_INTROSPECTION_FILTER = //
             m -> !m.isSynthetic()//
                     && m.getParameterCount() == 0//
