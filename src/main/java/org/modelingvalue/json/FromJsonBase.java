@@ -118,16 +118,31 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     }
 
     protected String getPathAsString() {
-        return "[" + path.stream()
-                         .map(x -> (x instanceof Integer) ? ("[" + i + "]") : (x instanceof String) ? (String) x : "???")
-                         .collect(Collectors.joining(",")) + "]";
+        return "«" + path.stream()
+                         .map(x -> (x instanceof Integer) ? ("[" + x + "]") : (x instanceof String) ? (String) x : "???")
+                         .collect(Collectors.joining(".")) + "»";
     }
 
+    private static final int ERROR_WINDOW_WIDTH = 64;
+
     protected String getCurrentTextWindow() {
-        String pre   = input.substring(Math.max(0, i - 20), Math.min(i, input.length()));
-        String where = "<" + (eof ? "" : input.charAt(i)) + ">";
-        String post  = input.substring(Math.min(input.length(), i + 1), Math.min(input.length(), i + 20));
-        return "[" + pre + where + post + "]";
+        int    l    = input.length();
+        String pre  = keepEnd(sanitize(input.substring(Math.max(0, i - ERROR_WINDOW_WIDTH), Math.min(i, l))));
+        String loc  = eof ? "" : sanitize("" + input.charAt(i));
+        String post = keepBegin(sanitize(input.substring(Math.min(l, i + 1), Math.min(l, i + ERROR_WINDOW_WIDTH))));
+        return "«" + pre + "»" + loc + "«" + post + "»";
+    }
+
+    private static String sanitize(String s) {
+        return s.trim().replaceAll("[ \t\n\r]+", " ");
+    }
+
+    private static String keepBegin(String s) {
+        return s.substring(0, Math.min(s.length(), ERROR_WINDOW_WIDTH / 2));
+    }
+
+    private static String keepEnd(String s) {
+        return s.substring(Math.max(0, s.length() - ERROR_WINDOW_WIDTH / 2));
     }
 
     protected String getLocationDescription() {
