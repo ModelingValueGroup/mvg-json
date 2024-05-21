@@ -25,6 +25,7 @@ import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Stack;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     private static final String        TRUE_STRING  = "true";
@@ -116,11 +117,25 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         return path;
     }
 
-    protected IllegalArgumentException error(String message) {
+    protected String getPathAsString() {
+        return "[" + path.stream()
+                         .map(x -> (x instanceof Integer) ? ("[" + i + "]") : (x instanceof String) ? (String) x : "???")
+                         .collect(Collectors.joining(",")) + "]";
+    }
+
+    protected String getCurrentTextWindow() {
         String pre   = input.substring(Math.max(0, i - 20), Math.min(i, input.length()));
         String where = "<" + (eof ? "" : input.charAt(i)) + ">";
         String post  = input.substring(Math.min(input.length(), i + 1), Math.min(input.length(), i + 20));
-        return new IllegalArgumentException("json syntax error: " + message + " (at " + i + ": [" + pre + where + post + "])");
+        return "[" + pre + where + post + "]";
+    }
+
+    protected String getLocationDescription() {
+        return "at=" + i + ", text=" + getCurrentTextWindow() + ", path=" + getPathAsString();
+    }
+
+    protected IllegalArgumentException error(String message) {
+        return new IllegalArgumentException("json syntax error: " + message + " (" + getLocationDescription() + ")");
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -145,34 +160,28 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         if (eof) {
             throw error("premature end");
         }
-        switch (current) {
-            case '{':
-                return parseMap();
-            case '[':
-                return parseArray();
-            case '"':
-                return parseString();
-            case '+':
-            case '-':
-            case '0':
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
-            case '6':
-            case '7':
-            case '8':
-            case '9':
-                return parseNumber();
-            case 't'/*true*/:
-                return parseTrue();
-            case 'f'/*false*/:
-                return parseFalse();
-            case 'n'/*null*/:
-                return parseNull();
-        }
-        throw error("unexpected character '" + current + "'");
+        return switch (current) {
+            case '{' -> parseMap();
+            case '[' -> parseArray();
+            case '"' -> parseString();
+            case '+',
+                 '-',
+                 '0',
+                 '1',
+                 '2',
+                 '3',
+                 '4',
+                 '5',
+                 '6',
+                 '7',
+                 '8',
+                 '9' -> parseNumber();
+            case 't' -> parseTrue();
+            case 'f' -> parseFalse();
+            case 'n' -> parseNull();
+            default ->
+                    throw error("unexpected character '" + current + "'");
+        };
     }
 
     protected Object parseMap() {
@@ -183,7 +192,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         next();
         skipWS();
         if (current != '}') {
-            loop:
+loop:
             while (true) {
                 Object key = makeMapKey(parseString());
                 skipWS();
@@ -223,7 +232,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         next();
         skipWS();
         if (current != ']') {
-            A:
+A:
             while (true) {
                 path.push(index);
                 l = makeArrayEntry(l, getIndex(), parseValue());
@@ -303,7 +312,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     protected Object parseNumber() {
         int     start    = i;
         boolean isDouble = false;
-        A:
+A:
         while (true) {
             switch (current) {
                 case '0':
@@ -337,8 +346,8 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
             c1 = i <= start + 2 ? null : input.charAt(start + 2);
         }
         if (c0 == null
-                || !('0' <= c0 && c0 <= '9')
-                || (c0 == '0' && c1 != null && c1 != '.') && c1 != 'e' && c1 != 'E') {
+            || !('0' <= c0 && c0 <= '9')
+            || (c0 == '0' && c1 != null && c1 != '.') && c1 != 'e' && c1 != 'E') {
             i = start;
             throw error("unexpected character in number literal '" + c0 + "'");
         }
