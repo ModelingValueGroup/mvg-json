@@ -20,9 +20,11 @@
 
 package org.modelingvalue.json;
 
-interface FieldSetter {
-    // if (o==Collection) o.add(v) or o[key]=v (key=Integer)
-    // if (o==Map       ) o.put(key,v)
-    // if (o==Object    ) o.key = v
-    Object set(Object o, Object key, Object v);
+interface PropertySetter {
+    // if (receivingObject==Collection && key isInt) receivingObject[key] = value
+    // if (receivingObject==Collection && else     ) receivingObject.add(value)
+    // if (receivingObject==Map                    ) receivingObject.put(key,value)
+    // if (receivingObject==Object                 ) receivingObject.key = value
+    // returns receivingObject
+    Object set(Object receivingObject, Object key, Object value);
 }

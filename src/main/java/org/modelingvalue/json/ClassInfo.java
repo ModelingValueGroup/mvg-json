@@ -20,136 +20,62 @@
 
 package org.modelingvalue.json;
 
-import org.modelingvalue.json.U.RW;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.AbstractMap.SimpleEntry;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
-import java.util.function.Function;
+import java.util.Set;
 import java.util.stream.Stream;
 
 class ClassInfo {
-    private abstract static class MemberInfo {
-        private final String name;
-
-        private MemberInfo(String name) {
-            this.name = name;
-        }
-
-        abstract Function<Object, Object> getAccessor();
-
-        abstract boolean isId();
-
-        Entry<Object, Object> getEntry(Object o) {
-            return new SimpleEntry<>(name, getAccessor().apply(o));
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
-
-    private class FieldMemberInfo extends MemberInfo {
-        private final Field f;
-
-        private FieldMemberInfo(Field f) {
-            super(U.fieldToElementName(f, config));
-            this.f = f;
-        }
-
-        @Override
-        Function<Object, Object> getAccessor() {
-            return o -> {
-                try {
-                    return f.get(o);
-                } catch (IllegalAccessException e) {
-                    // just ignore
-                    return null;
-                }
-            };
-        }
-
-        @Override
-        boolean isId() {
-            return config.getAnnotation(f, JsonId.class) != null;
-        }
-    }
-
-    private class MethodMemberInfo extends MemberInfo {
-        private final Method m;
-
-        private MethodMemberInfo(Method m) {
-            super(U.methodToElementName(m));
-            this.m = m;
-        }
-
-        @Override
-        Function<Object, Object> getAccessor() {
-            return o -> {
-                try {
-                    return m.invoke(o);
-                } catch (IllegalAccessException | InvocationTargetException e) {
-                    // just ignore
-                    return null;
-                }
-            };
-        }
-
-        @Override
-        boolean isId() {
-            return config.getAnnotation(m, JsonId.class) != null;
-        }
-    }
-
-    private final Class<?>            clazz;
-    private final Config              config;
-    private final List<MemberInfo>    members       = new ArrayList<>();
-    private final MemberInfo          idField;
-    private final Map<Object, String> seenBeforeMap = new HashMap<>();
+    private final Class<?>               clazz;
+    private final Config                 config;
+    private final List<PropertyAccessor> properties    = new ArrayList<>();
+    private final PropertyAccessor       idProperty;
+    private final Set<Object>            seenBeforeSet = new HashSet<>();
 
     ClassInfo(Class<?> clazz, Config config) {
         this.clazz  = clazz;
         this.config = config;
 
-        U.forAllMethodsAndFields(clazz, config, //
-                                 m -> members.add(new MethodMemberInfo(m)), //
-                                 f -> members.add(new FieldMemberInfo(f)), //
-                                 RW.READ);
-        members.sort(Comparator.comparing(m -> m.name));
-        idField = members.stream().filter(MemberInfo::isId).findFirst().orElse(null);
-        if (idField != null) {
-            members.remove(idField);
-            members.add(0, idField);
+        properties.addAll(PropertyAccessor.all(clazz, config)
+                                          .values()
+                                          .stream()
+                                          .filter(PropertyAccessor::canGet)
+                                          .sorted(Comparator.comparing(PropertyAccessor::name))
+                                          .toList());
+        idProperty = properties.stream().filter(pa -> pa.isId(config)).findFirst().orElse(null);
+        if (idProperty != null) {
+            properties.remove(idProperty);
+            properties.add(0, idProperty);
         }
     }
 
-    private String seenBeforeId(Object o) {
-        return idField != null ? idField.getAccessor().apply(o).toString() : null;
-    }
-
-    private boolean seenBefore(Object o) {
-        if (idField != null) {
-            if (seenBeforeMap.containsKey(o)) {
-                return true;
-            }
-            seenBeforeMap.put(o, seenBeforeId(o));
+    private boolean firstOccurrence(Object o) {
+        if (idProperty == null) {
+            return true;
+        }
+        if (!seenBeforeSet.contains(o)) {
+            seenBeforeSet.add(o);
+            return true;
         }
         return false;
     }
 
     public Iterator<Entry<Object, Object>> getIntrospectionIterator(Object o) {
         Stream<Entry<Object, Object>> entryStream;
-        if (seenBefore(o)) {
-            entryStream = Stream.of(idField.getEntry(o));
-        } else {
-            entryStream = members.stream().map(m -> m.getEntry(o));
+        if (firstOccurrence(o)) {
+            // first time, render the whole thing:
+            entryStream = properties.stream().map(m -> new SimpleEntry<>(m.name(), m.get(o)));
             if (config.includeClassNameInIntrospection) {
                 entryStream = Stream.concat(Stream.of(new SimpleEntry<>(U.CLASS_NAME_FIELD_NAME, clazz.getName())), entryStream);
             }
+        } else {
+            // this object was rendered before, only render the idProperty now:
+            entryStream = Stream.of(new SimpleEntry<>(idProperty.name(), idProperty.get(o)));
         }
         return entryStream.iterator();
     }

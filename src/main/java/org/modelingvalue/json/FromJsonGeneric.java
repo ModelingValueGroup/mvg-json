@@ -20,13 +20,15 @@
 
 package org.modelingvalue.json;
 
+import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.MAY_BE_ID;
+import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.MAY_BE_MORE;
+import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.MAY_NOT_BE_MORE;
+
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 import java.util.function.Consumer;
-
-import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.*;
 
 public class FromJsonGeneric extends FromJsonBase<Object, Object> {
     public static <T> T fromJson(Type t, String s) {
@@ -35,7 +37,12 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
 
     @SuppressWarnings("unchecked")
     public static <T> T fromJson(Type t, String s, Config config) {
-        return (T) new FromJsonGeneric(t, s, config).parse();
+        FromJsonGeneric fromJsonGeneric = new FromJsonGeneric(t, s, config);
+        try {
+            return (T) fromJsonGeneric.parse();
+        } catch (Throwable throwable) {
+            throw fromJsonGeneric.error(throwable.getMessage(), throwable);
+        }
     }
 
     private final Stack<TypeInfo>     typeInfoStack    = new Stack<>();
@@ -65,7 +72,7 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
     private Object makeObject() {
         Stack<Object> path = getPath();
         if (!path.isEmpty()) {
-            pushType(typeInfoStack.peek().getFieldType(path.peek()));
+            pushType(typeInfoStack.peek().getPropertyType(path.peek()));
         }
         return typeInfoStack.peek().getMaker().make();
     }
@@ -90,7 +97,7 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
         switch (idAcceptState) {
             case MAY_BE_ID:
                 idAcceptState = MAY_BE_MORE;
-                if (typeInfo.isIdField(key.toString())) {
+                if (typeInfo.isIdProperty(key.toString())) {
                     final Object mm = m;
                     m = id2objectMap.computeIfAbsent(value, __ -> mm);
                     if (m != mm) {
@@ -99,7 +106,7 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
                 }
                 break;
             case MAY_BE_MORE:
-                if (typeInfo.isIdField(key.toString())) {
+                if (typeInfo.isIdProperty(key.toString())) {
                     final Object mm = m;
                     m = id2objectMap.computeIfAbsent(value, __ -> mm);
                     if (m != mm) {
@@ -110,14 +117,14 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
             case MAY_NOT_BE_MORE:
                 throw error("id references must be the only field present when referencing a previous object: found " + key + ": " + value);
         }
-        FieldSetter fieldSetter = typeInfo.getFieldSetter(key);
-        if (fieldSetter == null) {
+        PropertySetter propertySetter = typeInfo.getPropertySetter(key);
+        if (propertySetter == null) {
             if (!config.ignoreUnkownFieldsInRecords) {
                 throw error("unknown field in record: " + key);
             }
             return m;
         } else {
-            return fieldSetter.set(m, key, value);
+            return propertySetter.set(m, key, value);
         }
     }
 
@@ -135,8 +142,8 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
 
     @Override
     protected Object makeArrayEntry(Object a, int index, Object value) {
-        FieldSetter fieldSetter = typeInfoStack.peek().getFieldSetter(index);
-        return fieldSetter.set(a, index, value);
+        PropertySetter propertySetter = typeInfoStack.peek().getPropertySetter(index);
+        return propertySetter.set(a, index, value);
     }
 
     @Override

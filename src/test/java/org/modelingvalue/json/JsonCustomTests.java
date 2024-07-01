@@ -20,7 +20,8 @@
 
 package org.modelingvalue.json;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -28,8 +29,7 @@ import java.io.InputStreamReader;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import org.junit.jupiter.api.Test;
 
 public class JsonCustomTests {
     @Test
@@ -114,9 +114,8 @@ public class JsonCustomTests {
         }
 
         private void countString(Object v) {
-            if (v instanceof String) {
+            if (v instanceof String s) {
                 numStrings++;
-                String s = (String) v;
                 numBracketsString += s.replaceAll("[^\\[]", "").length();
                 numCurliesString += s.replaceAll("[^{]", "").length();
             }

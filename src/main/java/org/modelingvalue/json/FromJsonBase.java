@@ -118,23 +118,19 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     }
 
     protected String getPathAsString() {
-        return "«" + path.stream()
-                         .map(x -> (x instanceof Integer) ? ("[" + x + "]") : (x instanceof String) ? (String) x : "???")
-                         .collect(Collectors.joining(".")) + "»";
+        return path.stream()
+                   .map(x -> (x instanceof Integer) ? ("[" + x + "]") : (x instanceof String) ? (String) x : "???")
+                   .collect(Collectors.joining("."));
     }
 
-    private static final int ERROR_WINDOW_WIDTH = 64;
+    private static final int ERROR_WINDOW_WIDTH = Integer.getInteger("JSON.ERROR_WINDOW_WIDTH", 512);
 
     protected String getCurrentTextWindow() {
         int    l    = input.length();
-        String pre  = keepEnd(sanitize(input.substring(Math.max(0, i - ERROR_WINDOW_WIDTH), Math.min(i, l))));
-        String loc  = eof ? "" : sanitize("" + input.charAt(i));
-        String post = keepBegin(sanitize(input.substring(Math.min(l, i + 1), Math.min(l, i + ERROR_WINDOW_WIDTH))));
-        return "«" + pre + "»" + loc + "«" + post + "»";
-    }
-
-    private static String sanitize(String s) {
-        return s.trim().replaceAll("[ \t\n\r]+", " ");
+        String pre  = keepEnd(input.substring(Math.max(0, i - ERROR_WINDOW_WIDTH), Math.min(i, l)));
+        String loc  = eof ? "" : "" + input.charAt(i);
+        String post = keepBegin(input.substring(Math.min(l, i + 1), Math.min(l, i + ERROR_WINDOW_WIDTH)));
+        return "..." + pre + "»»»" + loc + "«««" + post + "...";
     }
 
     private static String keepBegin(String s) {
@@ -146,11 +142,15 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     }
 
     protected String getLocationDescription() {
-        return "at=" + i + ", text=" + getCurrentTextWindow() + ", path=" + getPathAsString();
+        return "at=" + i + ", path=" + getPathAsString() + ", context:\n" + getCurrentTextWindow();
     }
 
     protected IllegalArgumentException error(String message) {
-        return new IllegalArgumentException("json syntax error: " + message + " (" + getLocationDescription() + ")");
+        return new IllegalArgumentException("json syntax error: " + message + ": " + getLocationDescription());
+    }
+
+    protected IllegalArgumentException error(String message, Throwable cause) {
+        return new IllegalArgumentException(message + ": " + getLocationDescription(), cause);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -261,7 +261,7 @@ A:
                     case ']':
                         break A;
                     default:
-                        throw error("unexpected charecter '" + current + "'");
+                        throw error("unexpected character '" + current + "'");
                 }
                 index++;
             }
