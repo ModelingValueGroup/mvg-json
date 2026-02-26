@@ -1,3 +1,10 @@
+pluginManagement {
+    repositories {
+        maven { url = uri("https://modelingvaluegroup.github.io/gradlePlugins/") }
+        gradlePluginPortal()
+    }
+}
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //  (C) Copyright 2018-2026 Modeling Value Group B.V. (http://modelingvalue.org)                                         ~
 //                                                                                                                       ~
@@ -19,7 +26,3 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 rootProject.name = "mvg-json"
-
-plugins {
-    id("com.gradle.enterprise") version ("3.5")
-}
