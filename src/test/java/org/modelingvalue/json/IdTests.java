@@ -1,23 +1,24 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// (C) Copyright 2018-2023 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
-//                                                                                                                     ~
-// Licensed under the GNU Lesser General Public License v3.0 (the 'License'). You may not use this file except in      ~
-// compliance with the License. You may obtain a copy of the License at: https://choosealicense.com/licenses/lgpl-3.0  ~
-// Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on ~
-// an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the  ~
-// specific language governing permissions and limitations under the License.                                          ~
-//                                                                                                                     ~
-// Maintainers:                                                                                                        ~
-//     Wim Bast, Tom Brus, Ronald Krijgsheld                                                                           ~
-// Contributors:                                                                                                       ~
-//     Arjan Kok, Carel Bast                                                                                           ~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//  (C) Copyright 2018-2026 Modeling Value Group B.V. (http://modelingvalue.org)                                         ~
+//                                                                                                                       ~
+//  Licensed under the GNU Lesser General Public License v3.0 (the 'License'). You may not use this file except in       ~
+//  compliance with the License. You may obtain a copy of the License at: https://choosealicense.com/licenses/lgpl-3.0   ~
+//  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on  ~
+//  an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the   ~
+//  specific language governing permissions and limitations under the License.                                           ~
+//                                                                                                                       ~
+//  Maintainers:                                                                                                         ~
+//      Wim Bast, Tom Brus                                                                                               ~
+//                                                                                                                       ~
+//  Contributors:                                                                                                        ~
+//      Ronald Krijgsheld ✝, Arjan Kok, Carel Bast                                                                       ~
+// --------------------------------------------------------------------------------------------------------------------- ~
+//  In Memory of Ronald Krijgsheld, 1972 - 2023                                                                          ~
+//      Ronald was suddenly and unexpectedly taken from us. He was not only our long-term colleague and team member      ~
+//      but also our friend. "He will live on in many of the lines of code you see below."                               ~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 package org.modelingvalue.json;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.modelingvalue.json.IdTests.A.Fingerprinter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,91 +26,95 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.modelingvalue.json.IdTests.A.Fingerprinter;
+
 public class IdTests {
     private static final String EXPECTED_ID_GETTERS = "{\"id\":123,\"children\":[{\"id\":678,\"children\":null},{\"id\":123},{\"id\":345,\"children\":null}]}";
     private static final String EXPECTED_MINIMAL    = /**/
             /**/"{" +
-            /**//**/"\"id\":\"xxx\"," +
-            /**//**/"\"children\":[]," +
-            /**//**/"\"friend\":{\"id\":\"xxx\"}," +
-            /**//**/"\"parent\":null" +
-            /**/"}";
+                        /**//**/"\"id\":\"xxx\"," +
+                        /**//**/"\"children\":[]," +
+                        /**//**/"\"friend\":{\"id\":\"xxx\"}," +
+                        /**//**/"\"parent\":null" +
+                        /**/"}";
     private static final String MINIMAL_OK1         = /**/
             /**/"{" +
-            /**//**/"\"id\":\"xxx\"," +
-            /**//**/"\"friend\":{\"id\":\"yyy\", \"friend\": {\"id\":\"yyy\"}}" +
-            /**/"}";
+                        /**//**/"\"id\":\"xxx\"," +
+                        /**//**/"\"friend\":{\"id\":\"yyy\", \"friend\": {\"id\":\"yyy\"}}" +
+                        /**/"}";
     private static final String MINIMAL_OK2         = /**/
             /**/"{" +
-            /**//**/"\"id\":\"xxx\"," +
-            /**//**/"\"friend\":{\"id\":\"yyy\", \"friend\": {\"id\":\"zzz\"}}" +
-            /**/"}";
+                        /**//**/"\"id\":\"xxx\"," +
+                        /**//**/"\"friend\":{\"id\":\"yyy\", \"friend\": {\"id\":\"zzz\"}}" +
+                        /**/"}";
     private static final String MINIMAL_BAD1        = /**/
             /**/"{" +
-            /**//**/"\"id\":\"xxx\"," +
-            /**//**/"\"friend\":{\"id\":\"xxx\", \"friend\": {\"id\":\"yyy\"}}" +
-            /**/"}";
+                        /**//**/"\"id\":\"xxx\"," +
+                        /**//**/"\"friend\":{\"id\":\"xxx\", \"friend\": {\"id\":\"yyy\"}}" +
+                        /**/"}";
     private static final String MINIMAL_BAD2        = /**/
             /**/"{" +
-            /**//**/"\"id\":\"xxx\"," +
-            /**//**/"\"friend\":{\"friend\": {\"id\":\"yyy\"},\"id\":\"xxx\"}" +
-            /**/"}";
+                        /**//**/"\"id\":\"xxx\"," +
+                        /**//**/"\"friend\":{\"friend\": {\"id\":\"yyy\"},\"id\":\"xxx\"}" +
+                        /**/"}";
     private static final String EXPECTED_SHARED     = /**/
             /**/"{" +
-            /**//**/"\"id\":\"dad\"," +
-            /**//**/"\"children\":" +
-            /**//**/"[" +
-            /**//**//**/"{" +
-            /**//**//**//**/"\"id\":\"child\"," +
-            /**//**//**//**/"\"children\":[]," +
-            /**//**//**//**/"\"friend\":{\"id\":\"dad\"}," +
-            /**//**//**//**/"\"parent\":{\"id\":\"dad\"}" +
-            /**//**//**/"}" +
-            /**//**/"]," +
-            /**//**/"\"friend\":{\"id\":\"child\"}," +
-            /**//**/"\"parent\":null" +
-            /**/"}";
+                        /**//**/"\"id\":\"dad\"," +
+                        /**//**/"\"children\":" +
+                        /**//**/"[" +
+                        /**//**//**/"{" +
+                        /**//**//**//**/"\"id\":\"child\"," +
+                        /**//**//**//**/"\"children\":[]," +
+                        /**//**//**//**/"\"friend\":{\"id\":\"dad\"}," +
+                        /**//**//**//**/"\"parent\":{\"id\":\"dad\"}" +
+                        /**//**//**/"}" +
+                        /**//**/"]," +
+                        /**//**/"\"friend\":{\"id\":\"child\"}," +
+                        /**//**/"\"parent\":null" +
+                        /**/"}";
     private static final String EXPECTED_CYCLIC     = /**/
             /**/"{" +
-            /**//**/"\"id\":\"jaap\"," +
-            /**//**/"\"children\":" +
-            /**//**/"[" +
-            /**//**//**/"{" +
-            /**//**//**//**/"\"id\":\"frits\"," +
-            /**//**//**//**/"\"children\":" +
-            /**//**//**//**/"[" +
-            /**//**//**//**//**/"{" +
-            /**//**//**//**//**//**/"\"id\":\"boris\"," +
-            /**//**//**//**//**//**/"\"children\":[]," +
-            /**//**//**//**//**//**/"\"friend\":{\"id\":\"jaap\"}," +
-            /**//**//**//**//**//**/"\"parent\":{\"id\":\"frits\"}" +
-            /**//**//**//**//**/"}," +
-            /**//**//**//**//**/"{" +
-            /**//**//**//**//**//**/"\"id\":\"renee\"," +
-            /**//**//**//**//**//**/"\"children\":[]," +
-            /**//**//**//**//**//**/"\"friend\":null," +
-            /**//**//**//**//**//**/"\"parent\":{\"id\":\"frits\"}" +
-            /**//**//**//**//**/"}," +
-            /**//**//**//**//**/"{" +
-            /**//**//**//**//**//**/"\"id\":\"evert\"," +
-            /**//**//**//**//**//**/"\"children\":[]," +
-            /**//**//**//**//**//**/"\"friend\":{\"id\":\"renee\"}," +
-            /**//**//**//**//**//**/"\"parent\":{\"id\":\"frits\"}" +
-            /**//**//**//**//**/"}" +
-            /**//**//**//**/"]," +
-            /**//**//**//**/"\"friend\":{\"id\":\"jaap\"}," +
-            /**//**//**//**/"\"parent\":{\"id\":\"jaap\"}" +
-            /**//**//**/"}," +
-            /**//**//**/"{" +
-            /**//**//**//**/"\"id\":\"emma\"," +
-            /**//**//**//**/"\"children\":[]," +
-            /**//**//**//**/"\"friend\":{\"id\":\"frits\"}," +
-            /**//**//**//**/"\"parent\":{\"id\":\"jaap\"}" +
-            /**//**//**/"}" +
-            /**//**/"]," +
-            /**//**/"\"friend\":{\"id\":\"emma\"}," +
-            /**//**/"\"parent\":null" +
-            /**/"}";
+                        /**//**/"\"id\":\"jaap\"," +
+                        /**//**/"\"children\":" +
+                        /**//**/"[" +
+                        /**//**//**/"{" +
+                        /**//**//**//**/"\"id\":\"frits\"," +
+                        /**//**//**//**/"\"children\":" +
+                        /**//**//**//**/"[" +
+                        /**//**//**//**//**/"{" +
+                        /**//**//**//**//**//**/"\"id\":\"boris\"," +
+                        /**//**//**//**//**//**/"\"children\":[]," +
+                        /**//**//**//**//**//**/"\"friend\":{\"id\":\"jaap\"}," +
+                        /**//**//**//**//**//**/"\"parent\":{\"id\":\"frits\"}" +
+                        /**//**//**//**//**/"}," +
+                        /**//**//**//**//**/"{" +
+                        /**//**//**//**//**//**/"\"id\":\"renee\"," +
+                        /**//**//**//**//**//**/"\"children\":[]," +
+                        /**//**//**//**//**//**/"\"friend\":null," +
+                        /**//**//**//**//**//**/"\"parent\":{\"id\":\"frits\"}" +
+                        /**//**//**//**//**/"}," +
+                        /**//**//**//**//**/"{" +
+                        /**//**//**//**//**//**/"\"id\":\"evert\"," +
+                        /**//**//**//**//**//**/"\"children\":[]," +
+                        /**//**//**//**//**//**/"\"friend\":{\"id\":\"renee\"}," +
+                        /**//**//**//**//**//**/"\"parent\":{\"id\":\"frits\"}" +
+                        /**//**//**//**//**/"}" +
+                        /**//**//**//**/"]," +
+                        /**//**//**//**/"\"friend\":{\"id\":\"jaap\"}," +
+                        /**//**//**//**/"\"parent\":{\"id\":\"jaap\"}" +
+                        /**//**//**/"}," +
+                        /**//**//**/"{" +
+                        /**//**//**//**/"\"id\":\"emma\"," +
+                        /**//**//**//**/"\"children\":[]," +
+                        /**//**//**//**/"\"friend\":{\"id\":\"frits\"}," +
+                        /**//**//**//**/"\"parent\":{\"id\":\"jaap\"}" +
+                        /**//**//**/"}" +
+                        /**//**/"]," +
+                        /**//**/"\"friend\":{\"id\":\"emma\"}," +
+                        /**//**/"\"parent\":null" +
+                        /**/"}";
 
     @Test
     public void idGettersTest() {
@@ -166,13 +171,19 @@ public class IdTests {
     @Test
     public void bad1Test() {
         IllegalArgumentException iae = Assertions.assertThrowsExactly(IllegalArgumentException.class, () -> FromJsonGeneric.fromJson(A.class, MINIMAL_BAD1));
-        Assertions.assertEquals("json syntax error: id references must be the only field set when referencing a previous object (at 44: [d\":\"xxx\", \"friend\": <{>\"id\":\"yyy\"}}}])", iae.getMessage());
+        Assertions.assertEquals("""
+                                json syntax error: id references must be the only field set when referencing a previous object: at=44, path=friend.friend, context:
+                                ...{"id":"xxx","friend":{"id":"xxx", "friend": »»»{«««"id":"yyy"}}}...: at=44, path=friend.friend, context:
+                                ...{"id":"xxx","friend":{"id":"xxx", "friend": »»»{«««"id":"yyy"}}}...""", iae.getMessage());
     }
 
     @Test
     public void bad2Test() {
         IllegalArgumentException iae = Assertions.assertThrowsExactly(IllegalArgumentException.class, () -> FromJsonGeneric.fromJson(A.class, MINIMAL_BAD2));
-        Assertions.assertEquals("json syntax error: id references must be the only field present when referencing a previous object: found id: xxx (at 55: [d\":\"yyy\"},\"id\":\"xxx\"<}>}])", iae.getMessage());
+        Assertions.assertEquals("""
+                                json syntax error: id references must be the only field present when referencing a previous object: found id: xxx: at=55, path=friend.id, context:
+                                ...{"id":"xxx","friend":{"friend": {"id":"yyy"},"id":"xxx"»»»}«««}...: at=55, path=friend.id, context:
+                                ...{"id":"xxx","friend":{"friend": {"id":"yyy"},"id":"xxx"»»»}«««}...""", iae.getMessage());
     }
 
     @Test
@@ -264,7 +275,7 @@ public class IdTests {
 
         @Override
         public String toString() {
-            return id + children.stream().map(a -> a.id).collect(Collectors.toList()) + (friend == null ? "<null>" : friend.id);
+            return id + children.stream().map(a -> a.id).toList() + (friend == null ? "<null>" : friend.id);
         }
 
         public String fingerprint(Fingerprinter fp) {
@@ -324,7 +335,7 @@ public class IdTests {
 
         @Override
         public String toString() {
-            return id + children.stream().map(a -> a.id).collect(Collectors.toList()) + (friend == null ? "<null>" : friend.id);
+            return id + children.stream().map(a -> a.id).toList() + (friend == null ? "<null>" : friend.id);
         }
 
         public String fingerprint(Fingerprinter fp) {

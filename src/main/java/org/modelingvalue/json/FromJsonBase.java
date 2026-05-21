@@ -1,17 +1,22 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// (C) Copyright 2018-2023 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
-//                                                                                                                     ~
-// Licensed under the GNU Lesser General Public License v3.0 (the 'License'). You may not use this file except in      ~
-// compliance with the License. You may obtain a copy of the License at: https://choosealicense.com/licenses/lgpl-3.0  ~
-// Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on ~
-// an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the  ~
-// specific language governing permissions and limitations under the License.                                          ~
-//                                                                                                                     ~
-// Maintainers:                                                                                                        ~
-//     Wim Bast, Tom Brus, Ronald Krijgsheld                                                                           ~
-// Contributors:                                                                                                       ~
-//     Arjan Kok, Carel Bast                                                                                           ~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//  (C) Copyright 2018-2026 Modeling Value Group B.V. (http://modelingvalue.org)                                         ~
+//                                                                                                                       ~
+//  Licensed under the GNU Lesser General Public License v3.0 (the 'License'). You may not use this file except in       ~
+//  compliance with the License. You may obtain a copy of the License at: https://choosealicense.com/licenses/lgpl-3.0   ~
+//  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on  ~
+//  an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the   ~
+//  specific language governing permissions and limitations under the License.                                           ~
+//                                                                                                                       ~
+//  Maintainers:                                                                                                         ~
+//      Wim Bast, Tom Brus                                                                                               ~
+//                                                                                                                       ~
+//  Contributors:                                                                                                        ~
+//      Ronald Krijgsheld ✝, Arjan Kok, Carel Bast                                                                       ~
+// --------------------------------------------------------------------------------------------------------------------- ~
+//  In Memory of Ronald Krijgsheld, 1972 - 2023                                                                          ~
+//      Ronald was suddenly and unexpectedly taken from us. He was not only our long-term colleague and team member      ~
+//      but also our friend. "He will live on in many of the lines of code you see below."                               ~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 package org.modelingvalue.json;
 
@@ -20,6 +25,7 @@ import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Stack;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     private static final String        TRUE_STRING  = "true";
@@ -111,11 +117,40 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         return path;
     }
 
+    protected String getPathAsString() {
+        return path.stream()
+                   .map(x -> (x instanceof Integer) ? ("[" + x + "]") : (x instanceof String) ? (String) x : "???")
+                   .collect(Collectors.joining("."));
+    }
+
+    private static final int ERROR_WINDOW_WIDTH = Integer.getInteger("JSON.ERROR_WINDOW_WIDTH", 512);
+
+    protected String getCurrentTextWindow() {
+        int    l    = input.length();
+        String pre  = keepEnd(input.substring(Math.max(0, i - ERROR_WINDOW_WIDTH), Math.min(i, l)));
+        String loc  = eof ? "" : "" + input.charAt(i);
+        String post = keepBegin(input.substring(Math.min(l, i + 1), Math.min(l, i + ERROR_WINDOW_WIDTH)));
+        return "..." + pre + "»»»" + loc + "«««" + post + "...";
+    }
+
+    private static String keepBegin(String s) {
+        return s.substring(0, Math.min(s.length(), ERROR_WINDOW_WIDTH / 2));
+    }
+
+    private static String keepEnd(String s) {
+        return s.substring(Math.max(0, s.length() - ERROR_WINDOW_WIDTH / 2));
+    }
+
+    protected String getLocationDescription() {
+        return "at=" + i + ", path=" + getPathAsString() + ", context:\n" + getCurrentTextWindow();
+    }
+
     protected IllegalArgumentException error(String message) {
-        String pre   = input.substring(Math.max(0, i - 20), Math.min(i, input.length()));
-        String where = "<" + (eof ? "" : input.charAt(i)) + ">";
-        String post  = input.substring(Math.min(input.length(), i + 1), Math.min(input.length(), i + 20));
-        return new IllegalArgumentException("json syntax error: " + message + " (at " + i + ": [" + pre + where + post + "])");
+        return new IllegalArgumentException("json syntax error: " + message + ": " + getLocationDescription());
+    }
+
+    protected IllegalArgumentException error(String message, Throwable cause) {
+        return new IllegalArgumentException(message + ": " + getLocationDescription(), cause);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -140,34 +175,28 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         if (eof) {
             throw error("premature end");
         }
-        switch (current) {
-            case '{':
-                return parseMap();
-            case '[':
-                return parseArray();
-            case '"':
-                return parseString();
-            case '+':
-            case '-':
-            case '0':
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
-            case '6':
-            case '7':
-            case '8':
-            case '9':
-                return parseNumber();
-            case 't'/*true*/:
-                return parseTrue();
-            case 'f'/*false*/:
-                return parseFalse();
-            case 'n'/*null*/:
-                return parseNull();
-        }
-        throw error("unexpected character '" + current + "'");
+        return switch (current) {
+            case '{' -> parseMap();
+            case '[' -> parseArray();
+            case '"' -> parseString();
+            case '+',
+                 '-',
+                 '0',
+                 '1',
+                 '2',
+                 '3',
+                 '4',
+                 '5',
+                 '6',
+                 '7',
+                 '8',
+                 '9' -> parseNumber();
+            case 't' -> parseTrue();
+            case 'f' -> parseFalse();
+            case 'n' -> parseNull();
+            default ->
+                    throw error("unexpected character '" + current + "'");
+        };
     }
 
     protected Object parseMap() {
@@ -178,7 +207,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         next();
         skipWS();
         if (current != '}') {
-            loop:
+loop:
             while (true) {
                 Object key = makeMapKey(parseString());
                 skipWS();
@@ -218,7 +247,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
         next();
         skipWS();
         if (current != ']') {
-            A:
+A:
             while (true) {
                 path.push(index);
                 l = makeArrayEntry(l, getIndex(), parseValue());
@@ -232,7 +261,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
                     case ']':
                         break A;
                     default:
-                        throw error("unexpected charecter '" + current + "'");
+                        throw error("unexpected character '" + current + "'");
                 }
                 index++;
             }
@@ -298,7 +327,7 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
     protected Object parseNumber() {
         int     start    = i;
         boolean isDouble = false;
-        A:
+A:
         while (true) {
             switch (current) {
                 case '0':
@@ -332,8 +361,8 @@ public class FromJsonBase<ARRAY_TYPE, MAP_TYPE> {
             c1 = i <= start + 2 ? null : input.charAt(start + 2);
         }
         if (c0 == null
-                || !('0' <= c0 && c0 <= '9')
-                || (c0 == '0' && c1 != null && c1 != '.') && c1 != 'e' && c1 != 'E') {
+            || !('0' <= c0 && c0 <= '9')
+            || (c0 == '0' && c1 != null && c1 != '.') && c1 != 'e' && c1 != 'E') {
             i = start;
             throw error("unexpected character in number literal '" + c0 + "'");
         }

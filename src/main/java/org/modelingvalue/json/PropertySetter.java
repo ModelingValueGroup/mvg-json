@@ -18,57 +18,13 @@
 //      but also our friend. "He will live on in many of the lines of code you see below."                               ~
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-package org.modelingvalue.json.protocol;
+package org.modelingvalue.json;
 
-public interface Message {
-    String keyword();
-
-    String senderUuid();
-
-    long senderMessageNumber();
-
-    long receiverMessageNumber();
-
-    Object json();
-
-    class MessageImpl implements Message {
-        private final String keyWord;
-        private final String senderUuid;
-        private final long   senderMessageNumber;
-        private final long   receiverMessageNumber;
-        private final Object json;
-
-        public MessageImpl(String keyWord, String senderUuid, long senderMessageNumber, long receiverMessageNumber, Object json) {
-            this.keyWord               = keyWord;
-            this.senderUuid            = senderUuid;
-            this.senderMessageNumber   = senderMessageNumber;
-            this.receiverMessageNumber = receiverMessageNumber;
-            this.json                  = json;
-        }
-
-        @Override
-        public String keyword() {
-            return keyWord;
-        }
-
-        @Override
-        public String senderUuid() {
-            return senderUuid;
-        }
-
-        @Override
-        public long senderMessageNumber() {
-            return senderMessageNumber;
-        }
-
-        @Override
-        public long receiverMessageNumber() {
-            return receiverMessageNumber;
-        }
-
-        @Override
-        public Object json() {
-            return json;
-        }
-    }
+interface PropertySetter {
+    // if (receivingObject==Collection && key isInt) receivingObject[key] = value
+    // if (receivingObject==Collection && else     ) receivingObject.add(value)
+    // if (receivingObject==Map                    ) receivingObject.put(key,value)
+    // if (receivingObject==Object                 ) receivingObject.key = value
+    // returns receivingObject
+    Object set(Object receivingObject, Object key, Object value);
 }

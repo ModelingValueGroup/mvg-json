@@ -1,27 +1,34 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// (C) Copyright 2018-2023 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
-//                                                                                                                     ~
-// Licensed under the GNU Lesser General Public License v3.0 (the 'License'). You may not use this file except in      ~
-// compliance with the License. You may obtain a copy of the License at: https://choosealicense.com/licenses/lgpl-3.0  ~
-// Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on ~
-// an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the  ~
-// specific language governing permissions and limitations under the License.                                          ~
-//                                                                                                                     ~
-// Maintainers:                                                                                                        ~
-//     Wim Bast, Tom Brus, Ronald Krijgsheld                                                                           ~
-// Contributors:                                                                                                       ~
-//     Arjan Kok, Carel Bast                                                                                           ~
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//  (C) Copyright 2018-2026 Modeling Value Group B.V. (http://modelingvalue.org)                                         ~
+//                                                                                                                       ~
+//  Licensed under the GNU Lesser General Public License v3.0 (the 'License'). You may not use this file except in       ~
+//  compliance with the License. You may obtain a copy of the License at: https://choosealicense.com/licenses/lgpl-3.0   ~
+//  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on  ~
+//  an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the   ~
+//  specific language governing permissions and limitations under the License.                                           ~
+//                                                                                                                       ~
+//  Maintainers:                                                                                                         ~
+//      Wim Bast, Tom Brus                                                                                               ~
+//                                                                                                                       ~
+//  Contributors:                                                                                                        ~
+//      Ronald Krijgsheld ✝, Arjan Kok, Carel Bast                                                                       ~
+// --------------------------------------------------------------------------------------------------------------------- ~
+//  In Memory of Ronald Krijgsheld, 1972 - 2023                                                                          ~
+//      Ronald was suddenly and unexpectedly taken from us. He was not only our long-term colleague and team member      ~
+//      but also our friend. "He will live on in many of the lines of code you see below."                               ~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 package org.modelingvalue.json;
+
+import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.MAY_BE_ID;
+import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.MAY_BE_MORE;
+import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.MAY_NOT_BE_MORE;
 
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 import java.util.function.Consumer;
-
-import static org.modelingvalue.json.FromJsonGeneric.IdAcceptState.*;
 
 public class FromJsonGeneric extends FromJsonBase<Object, Object> {
     public static <T> T fromJson(Type t, String s) {
@@ -30,7 +37,12 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
 
     @SuppressWarnings("unchecked")
     public static <T> T fromJson(Type t, String s, Config config) {
-        return (T) new FromJsonGeneric(t, s, config).parse();
+        FromJsonGeneric fromJsonGeneric = new FromJsonGeneric(t, s, config);
+        try {
+            return (T) fromJsonGeneric.parse();
+        } catch (Throwable throwable) {
+            throw fromJsonGeneric.error(throwable.getMessage(), throwable);
+        }
     }
 
     private final Stack<TypeInfo>     typeInfoStack    = new Stack<>();
@@ -60,7 +72,7 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
     private Object makeObject() {
         Stack<Object> path = getPath();
         if (!path.isEmpty()) {
-            pushType(typeInfoStack.peek().getFieldType(path.peek()));
+            pushType(typeInfoStack.peek().getPropertyType(path.peek()));
         }
         return typeInfoStack.peek().getMaker().make();
     }
@@ -85,7 +97,7 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
         switch (idAcceptState) {
             case MAY_BE_ID:
                 idAcceptState = MAY_BE_MORE;
-                if (typeInfo.isIdField(key.toString())) {
+                if (typeInfo.isIdProperty(key.toString())) {
                     final Object mm = m;
                     m = id2objectMap.computeIfAbsent(value, __ -> mm);
                     if (m != mm) {
@@ -94,7 +106,7 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
                 }
                 break;
             case MAY_BE_MORE:
-                if (typeInfo.isIdField(key.toString())) {
+                if (typeInfo.isIdProperty(key.toString())) {
                     final Object mm = m;
                     m = id2objectMap.computeIfAbsent(value, __ -> mm);
                     if (m != mm) {
@@ -105,14 +117,14 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
             case MAY_NOT_BE_MORE:
                 throw error("id references must be the only field present when referencing a previous object: found " + key + ": " + value);
         }
-        FieldSetter fieldSetter = typeInfo.getFieldSetter(key);
-        if (fieldSetter == null) {
+        PropertySetter propertySetter = typeInfo.getPropertySetter(key);
+        if (propertySetter == null) {
             if (!config.ignoreUnkownFieldsInRecords) {
                 throw error("unknown field in record: " + key);
             }
             return m;
         } else {
-            return fieldSetter.set(m, key, value);
+            return propertySetter.set(m, key, value);
         }
     }
 
@@ -130,8 +142,8 @@ public class FromJsonGeneric extends FromJsonBase<Object, Object> {
 
     @Override
     protected Object makeArrayEntry(Object a, int index, Object value) {
-        FieldSetter fieldSetter = typeInfoStack.peek().getFieldSetter(index);
-        return fieldSetter.set(a, index, value);
+        PropertySetter propertySetter = typeInfoStack.peek().getPropertySetter(index);
+        return propertySetter.set(a, index, value);
     }
 
     @Override
