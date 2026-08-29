@@ -23,13 +23,13 @@ defaultTasks("mvgCorrector", "test", "publish", "mvgTagger")
 plugins {
     `java-library`
     `maven-publish`
-    id("org.modelingvalue.gradle.mvgplugin") version "3.0.0"
+    id("org.modelingvalue.gradle.mvgplugin") version "3.0.1"
 }
 repositories {
     maven("https://maven.pkg.github.com/ModelingValueGroup/sync-proxy")
 }
 dependencies {
-    testImplementation("org.modelingvalue:sync-proxy:6.0.0-BRANCHED")
+    testImplementation("org.modelingvalue:sync-proxy:6.0.2-BRANCHED")
 }
 publishing {
     publications {
